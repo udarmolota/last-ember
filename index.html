@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LAST EMBER</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup-screen" class="screen active">
+<div class="sw">
+  <div class="stop">
+    <div><div class="gtitle">LAST EMBER</div><div class="gsub">SURVIVE · BUILD · ENDURE · v4 TERMINAL PROTOCOL</div></div>
+    <div class="pts">⬡ <span id="ptsnum">50</span> PTS</div>
+  </div>
+  <div class="scols">
+    <div class="ssec" style="flex:1.2"><div class="stitle">SUPPLIES</div><div class="sgrid" id="sgrid"></div></div>
+    <div class="ssec" style="flex:0.9"><div class="stitle">SURVIVORS <span style="font-size:10px;color:var(--textdim)">(pick 5)</span></div><div class="cpl" id="cpl"></div></div>
+  </div>
+  <button class="startbtn" id="startbtn" disabled>▶ BEGIN EXPEDITION</button>
+</div>
+</div>
+
+<!-- GAME -->
+<div id="game-screen" class="screen">
+  <div id="hdr">
+    <span id="hdr-logo">EMBER_OS v4</span>
+    <span class="hsep">|</span>
+    <span id="hdr-time">DAY <span id="hday">1</span> <span id="hclock">06:00</span></span>
+    <span class="hsep">|</span>
+    <span id="hdr-season">SPRING</span>
+    <span class="hsep">|</span>
+    <div id="hdr-happy">☺ <div id="hb"><div id="hbf" style="width:75%"></div></div> <span id="hpct">75%</span></div>
+    <button id="pbtn" class="hbtn paused">▶ PLAY</button>
+    <button id="spdbtn" class="hbtn">×1</button>
+  </div>
+  <div id="res-bar">
+    <div class="ri"><span class="ri-ico">🌾</span><span class="ri-lbl">FOOD</span><span class="ri-num" id="r-food">0</span></div>
+    <div class="ri"><span class="ri-ico">💧</span><span class="ri-lbl">WATER</span><span class="ri-num" id="r-water">0</span></div>
+    <div class="ri"><span class="ri-ico">🍞</span><span class="ri-lbl">MEALS</span><span class="ri-num" id="r-cooked">0</span></div>
+    <div class="ri"><span class="ri-ico">🪵</span><span class="ri-lbl">WOOD</span><span class="ri-num" id="r-wood">0</span></div>
+    <div class="ri"><span class="ri-ico">🪨</span><span class="ri-lbl">STONE</span><span class="ri-num" id="r-stone">0</span></div>
+    <div class="ri"><span class="ri-ico">⚙️</span><span class="ri-lbl">METAL</span><span class="ri-num" id="r-metal">0</span></div>
+    <div class="ri"><span class="ri-ico">🟤</span><span class="ri-lbl">COPPER</span><span class="ri-num" id="r-copper">0</span></div>
+    <div class="ri"><span class="ri-ico">💊</span><span class="ri-lbl">MEDS</span><span class="ri-num" id="r-meds">0</span></div>
+    <div class="ri"><span class="ri-ico">🌱</span><span class="ri-lbl">SEEDS</span><span class="ri-num" id="r-seeds">0</span></div>
+    <div class="ri"><span class="ri-ico">🧶</span><span class="ri-lbl">CLOTH</span><span class="ri-num" id="r-cloth">0</span></div>
+  </div>
+  <div id="game-body">
+    <div id="map-col">
+      <div id="main">
+        <div id="mapwrap">
+          <div id="advisor"><h3>CAMP STATUS</h3><div id="advbody"></div></div>
+          <div id="nightLabel">🌙 NIGHT REST — ALL WORK STOPPED</div>
+          <div id="mapcanvas"><div id="mapgrid"></div></div>
+          <div id="night"></div>
+          <div id="tpop"><h3 id="tpt"></h3><p id="tpb"></p></div>
+          <div id="taskqueue"></div>
+        </div>
+      </div>
+      <div id="bottom">
+        <div id="bpanels">
+          <div id="bpanel-log">
+            <div class="bphdr">LOG</div>
+            <div id="logp"></div>
+          </div>
+          <div id="bpanel-assign">
+            <div class="bphdr">ASSIGN</div>
+            <div id="assignp"></div>
+          </div>
+          <div id="bpanel-build">
+            <div class="bphdr">BUILD</div>
+            <div id="buildp"><div class="bcats" id="bcats"></div><div class="bgrid" id="bgrid"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="sidebar">
+      <div class="phdr">SURVIVORS</div>
+      <div id="collist"></div>
+    </div>
+  </div>
+  <div id="cdet"><div id="cdname"></div><div id="cdbody"></div><button id="cdclose">CLOSE</button></div>
+  <div id="phint">📍 TAP MAP TO PLACE: <span id="pname"></span> &nbsp;[tap here to cancel]</div>
+</div>
+
+<!-- MODAL -->
+<div id="mdbg"><div id="md"><h2 id="mdt"></h2><p id="mdp"></p><div class="mbs" id="mdb"></div></div></div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
