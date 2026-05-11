@@ -1,5 +1,7 @@
-// 1 day=24h=12 real min. 1h=30s. 1 game-min=0.5s -> tick every 500ms
-const G = {
+import { ResourceKey } from './types'
+import type { Colonist, Tile, PlacedBuilding, BuildingDef, Enemy, LogEntry, GameState } from './types'
+
+export const G: GameState = {
   day: 1,
   hour: 6,
   minute: 0,
@@ -8,16 +10,8 @@ const G = {
   paused: true,
   speed: 1,
   res: {
-    food: 0,
-    water: 0,
-    cooked: 0,
-    wood: 0,
-    stone: 0,
-    metal: 0,
-    copper: 0,
-    meds: 0,
-    seeds: 0,
-    cloth: 0,
+    food: 0, water: 0, cooked: 0, wood: 0, stone: 0,
+    metal: 0, copper: 0, meds: 0, seeds: 0, cloth: 0,
   },
   colonists: [],
   tiles: [],
@@ -37,4 +31,4 @@ const G = {
   porterPileIdx: 0,
   toolStock: {},
   raidPending: false,
-};
+}

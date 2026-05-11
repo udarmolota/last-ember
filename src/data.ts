@@ -1,4 +1,4 @@
-const PROF = [
+export const PROF = [
   'FARMER',
   'LUMBERJACK',
   'MINER',
@@ -13,7 +13,7 @@ const PROF = [
   'GUARD',
   'GATHERER',
 ];
-const PICO = {
+export const PICO = {
   FARMER: '🌾',
   LUMBERJACK: '🪵',
   MINER: '⛏',
@@ -28,7 +28,7 @@ const PICO = {
   GUARD: '🛡',
   GATHERER: '🧺',
 };
-const PRES = {
+export const PRES = {
   FARMER: 'seeds',
   LUMBERJACK: 'wood',
   MINER: 'metal',
@@ -43,7 +43,7 @@ const PRES = {
   TAILOR: 'cloth',
   GATHERER: 'food',
 };
-const TRAITS = [
+export const TRAITS = [
   {
     id: 'hardworking',
     label: 'Hardworking',
@@ -57,7 +57,7 @@ const TRAITS = [
   { id: 'sturdy', label: 'Sturdy', speed: 1.0, hp: 1.1, sick: 0.4 },
   { id: 'frail', label: 'Frail', speed: 0.95, hp: 0.85, sick: 2.0 },
 ];
-const NAMES = [
+export const NAMES = [
   'DOSS',
   'KIRA',
   'VANCE',
@@ -75,7 +75,7 @@ const NAMES = [
   'COLT',
   'ZOLA',
 ];
-const COLORS = [
+export const COLORS = [
   '#c05030',
   '#3060c0',
   '#30a040',
@@ -85,7 +85,7 @@ const COLORS = [
   '#c04060',
   '#608020',
 ];
-const SKINS = [
+export const SKINS = [
   '#f0c98d',
   '#e2b071',
   '#c99155',
@@ -93,7 +93,7 @@ const SKINS = [
   '#f4d6aa',
   '#d7a06a',
 ];
-const HAIRS = [
+export const HAIRS = [
   '#2b2118',
   '#6b3f1f',
   '#b8792c',
@@ -101,8 +101,8 @@ const HAIRS = [
   '#8b8b8b',
   '#1f1f1f',
 ];
-const HAIR_STYLES = ['cap', 'bun', 'pigtails', 'mohawk', 'beard', 'bob'];
-const SUPPLIES = [
+export const HAIR_STYLES = ['cap', 'bun', 'pigtails', 'mohawk', 'beard', 'bob'];
+export const SUPPLIES = [
   {
     id: 'food',
     ico: '🌾',
@@ -184,7 +184,7 @@ const SUPPLIES = [
     cost: 2,
   },
 ];
-const BLDGS = [
+export const BLDGS = [
   {
     id: 'hq_build',
     lv: 0,
@@ -371,7 +371,7 @@ const BLDGS = [
   },
 ];
 
-const CRAFTS = [
+export const CRAFTS = [
   // ── WORKSHOP (Stonemason) ── stone & wood tools ──
   // lv1: work tools
   {
@@ -523,7 +523,7 @@ const CRAFTS = [
   },
 ];
 
-const LORE = [
+export const LORE = [
   '"Day 47. The machines stopped the moment the sky turned red."',
   '"They say something guards the old vaults. We stay away."',
   '"Heard a broadcast last night. Not human words."',
@@ -534,12 +534,12 @@ const LORE = [
   '"The soil remembers. Some places nothing will ever grow."',
   '"Day 112. A working radio. Static. Then a voice: stop."',
 ];
-const MAP_W = 28,
+export const MAP_W = 28,
   MAP_H = 22,
   TS = 38,
   TICK_MS = 500;
-const SEASONS = ['SPRING', 'SUMMER', 'AUTUMN', 'WINTER'];
-const BCAT_DATA = {
+export const SEASONS = ['SPRING', 'SUMMER', 'AUTUMN', 'WINTER'];
+export const BCAT_DATA = {
   SHELTER: '⛺',
   FOOD: '🌾',
   PROD: '⛏',
@@ -550,10 +550,10 @@ const BCAT_DATA = {
   STORAGE: '📦',
   OTHER: '⚙',
 };
-const rnd = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
-const pick = (a) => a[Math.floor(Math.random() * a.length)];
-const isNightTime = () => G.hour < 6 || G.hour >= 21;
-const PROF_TOOL = {
+export const rnd = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+export const pick = (a) => a[Math.floor(Math.random() * a.length)];
+export const isNightTime = () => G.hour < 6 || G.hour >= 21;
+export const PROF_TOOL = {
   LUMBERJACK: 'Axe',
   MINER: 'Pickaxe',
   STONEMASON: 'Hammer',
