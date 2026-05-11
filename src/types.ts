@@ -109,6 +109,10 @@ export interface TileBuilding {
   phase?: 'seeding' | 'growing' | 'harvest'
   seedTimer?: number
   paused?: boolean
+  // 2x2 support
+  isMain?: boolean        // главный тайл (верхний левый)
+  mainCol?: number        // у вторичных тайлов — ссылка на главный
+  mainRow?: number
 }
 
 export interface Tile {

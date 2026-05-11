@@ -28,7 +28,7 @@ export function spawnEnemy(type: string): Enemy {
   G.enemies.push(enemy)
   const sp = document.createElement('div')
   sp.id = 'enemy-' + enemy.id
-  sp.style.cssText = `position:absolute;width:16px;height:16px;border-radius:2px;border:2px solid #8a1a08;background:${enemy.color};z-index:25;display:flex;align-items:center;justify-content:center;font-size:9px;box-shadow:0 1px 4px rgba(0,0,0,0.5);transition:left 0.4s,top 0.4s;`
+  sp.style.cssText = `position:absolute;width:12px;height:12px;border-radius:2px;border:1px solid #8a1a08;background:${enemy.color};z-index:25;display:flex;align-items:center;justify-content:center;font-size:7px;box-shadow:0 1px 4px rgba(0,0,0,0.5);transition:left 0.4s,top 0.4s;`
   sp.textContent = enemy.ico
   document.getElementById('mapcanvas')!.appendChild(sp)
   posEnemy(enemy)

@@ -534,9 +534,9 @@ export const LORE = [
   '"The soil remembers. Some places nothing will ever grow."',
   '"Day 112. A working radio. Static. Then a voice: stop."',
 ];
-export const MAP_W = 28,
-  MAP_H = 22,
-  TS = 38,
+export const MAP_W = 56,
+  MAP_H = 44,
+  TS = 19,
   TICK_MS = 500;
 export const SEASONS = ['SPRING', 'SUMMER', 'AUTUMN', 'WINTER'];
 export const BCAT_DATA = {

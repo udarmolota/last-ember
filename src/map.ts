@@ -16,43 +16,56 @@ export function genMap() {
     const ti = at(c, r); if (!ti) return; ti.type = t
     if (amt) { ti.resAmt = amt; ti.maxRes = amt }
   }
-  const wc = rnd(2, MAP_W - 4), wr = rnd(2, MAP_H - 4)
-  const waterTiles = [[0,0],[1,0],[0,1],[1,1],[2,1]]
+  // water
+  const wc = rnd(4, MAP_W - 8), wr = rnd(4, MAP_H - 8)
+  const waterTiles = [[0,0],[1,0],[2,0],[0,1],[1,1],[2,1],[1,2],[0,2]]
   waterTiles.forEach(([dc, dr]) => set(wc + dc, wr + dr, 'water'))
-  ;[[rnd(18,23),rnd(0,3)],[rnd(0,2),rnd(12,17)],[rnd(19,24),rnd(14,19)]].forEach(([fc, fr]) => {
-    for (let dr = -3; dr <= 3; dr++)
-      for (let dc = -3; dc <= 3; dc++) {
+
+  // forests
+  ;[[rnd(36,46),rnd(0,6)],[rnd(0,4),rnd(24,34)],[rnd(38,48),rnd(28,38)]].forEach(([fc, fr]) => {
+    for (let dr = -6; dr <= 6; dr++)
+      for (let dc = -6; dc <= 6; dc++) {
         const ti = at(fc + dc, fr + dr)
         if (ti && ti.type === 'grass' && Math.random() < 0.65) {
           ti.type = 'forest'; const a = rnd(40, 90); ti.resAmt = a; ti.maxRes = a
         }
       }
   })
-  const sc = rnd(8, 13), sr = rnd(8, 13)
-  for (let dr = 0; dr < 5; dr++)
-    for (let dc = 0; dc < 6; dc++)
+
+  // soil
+  const sc = rnd(16, 26), sr = rnd(16, 26)
+  for (let dr = 0; dr < 10; dr++)
+    for (let dc = 0; dc < 12; dc++)
       if (Math.random() < 0.8) set(sc + dc, sr + dr, 'soil')
-  ;[[rnd(5,9),rnd(2,5)],[rnd(21,25),rnd(5,9)]].forEach(([rc, rr]) => {
-    for (let dr = -2; dr <= 2; dr++)
-      for (let dc = -2; dc <= 2; dc++) {
+
+  // rock
+  ;[[rnd(10,18),rnd(4,10)],[rnd(42,50),rnd(10,18)]].forEach(([rc, rr]) => {
+    for (let dr = -4; dr <= 4; dr++)
+      for (let dc = -4; dc <= 4; dc++) {
         const ti = at(rc + dc, rr + dr)
         if (ti && ti.type === 'grass' && Math.random() < 0.6) {
           ti.type = 'rock'; const a = rnd(25, 55); ti.resAmt = a; ti.maxRes = a
         }
       }
   })
-  for (let i = 0; i < 14; i++) {
+
+  // berry/mushroom patches
+  for (let i = 0; i < 28; i++) {
     const ti = at(rnd(0, MAP_W - 1), rnd(0, MAP_H - 1))
     if (ti && (ti.type === 'grass' || ti.type === 'forest') && Math.random() < 0.5 && !ti.res) {
       ti.res = ti.type === 'forest' ? 'mushrooms' : 'berries'
       const a = rnd(6, 18); ti.resAmt = a; ti.maxRes = a
     }
   }
-  G.tiles.filter((t) => t.type === 'rock').sort(() => Math.random() - 0.5).slice(0, rnd(3, 5)).forEach((t) => {
+
+  // ore вкрапления внутри rock
+  G.tiles.filter((t) => t.type === 'rock').sort(() => Math.random() - 0.5).slice(0, rnd(6, 10)).forEach((t) => {
     t.type = 'ore'; const a = rnd(15, 35); t.resAmt = a; t.maxRes = a
   })
-  for (let i = 0; i < 10; i++) {
-    const ti = at(rnd(4, MAP_W - 4), rnd(4, MAP_H - 4))
+
+  // roads
+  for (let i = 0; i < 20; i++) {
+    const ti = at(rnd(8, MAP_W - 8), rnd(8, MAP_H - 8))
     if (ti && ti.type === 'grass') ti.type = 'road'
   }
 }
@@ -91,6 +104,15 @@ export function refreshTileEl(ti: Tile) {
   const ico = document.createElement('span')
   if (ti.bldg) {
     const bd = BLDGS.find((b) => b.id === ti.bldg!.id)
+    // вторичный тайл 2x2 — только фон, без иконки
+    if (ti.bldg.mainCol !== undefined) {
+      if (ti.bldg.buildTime > 0) {
+        const p = document.createElement('div'); p.className = 'bprog'
+        p.style.width = Math.round((1 - ti.bldg.buildTime / ti.bldg.totalTime) * 100) + '%'
+        el.appendChild(p)
+      }
+      return
+    }
     if (ti.bldg.field && ti.bldg.buildTime <= 0) {
       const phase = ti.bldg.phase || 'seeding'
       const cropIco: Record<string, Record<string, string>> = {
@@ -104,23 +126,23 @@ export function refreshTileEl(ti: Tile) {
       else if (phase === 'growing') ico.textContent = g < 40 ? ci.growing25 : ci.growing75
       else if (phase === 'harvest') ico.textContent = ci.harvest
       else ico.textContent = '🟫'
-      ico.style.fontSize = '20px'
+      ico.style.fontSize = '11px'
     } else {
-      ico.textContent = bd ? bd.ico : ti.bldg.id === 'hq' ? '🏚' : '🏗'
+      const bldgIco = bd ? bd.ico : ti.bldg.id === 'hq' ? '🏚' : '🏗'
+      // главный тайл большого здания — иконка 2x2
+      if (ti.bldg.isMain && ti.bldg.id !== 'campfire') {
+        ico.textContent = bldgIco
+        ico.style.cssText = `position:absolute;font-size:28px;top:0;left:0;width:${TS*2}px;height:${TS*2}px;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none;line-height:1;`
+      } else {
+        ico.textContent = bldgIco
+        ico.style.fontSize = '11px'
+      }
     }
     if (ti.bldg.buildTime > 0) {
       const p = document.createElement('div'); p.className = 'bprog'
       p.style.width = Math.round((1 - ti.bldg.buildTime / ti.bldg.totalTime) * 100) + '%'
       el.appendChild(p)
     }
-  } else {
-    const imap: Record<string, () => string> = {
-      forest: () => Math.random() < 0.5 ? '🌲' : '🌳',
-      water: () => '〰', ore: () => '◈', rock: () => '◇',
-      soil: () => '', grass: () => '', road: () => '',
-    }
-    ico.textContent = (imap[ti.type] || imap.grass)()
-    if (ti.res && ti.resAmt > 0) ico.textContent = ti.res === 'berries' ? '🫐' : '🍄'
   }
   el.appendChild(ico)
   if (ti.resPile && (ti.resPile.amount > 0 || ti.resPile.type === 'supplies')) {
@@ -209,6 +231,11 @@ export function onTileClick(ti: Tile) {
   document.getElementById('tpop')!.classList.remove('show')
   if (G.placingBldg) { placeBuilding(G.placingBldg, ti); return }
   if (!G.hqPlaced) { addLog('Open BUILD menu → SHELTER → place Headquarters first', 'warn'); return }
+  // если кликнули на вторичный тайл — показываем инфо главного
+  if (ti.bldg?.mainCol !== undefined) {
+    const main = G.tiles[ti.bldg.mainRow! * MAP_W + ti.bldg.mainCol]
+    if (main) { showTilePop(main); return }
+  }
   showTilePop(ti)
 }
 

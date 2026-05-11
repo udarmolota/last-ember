@@ -1,14 +1,33 @@
 import { G } from './state'
-import { SKINS, HAIRS, HAIR_STYLES, TS, pick } from './data'
+import { SKINS, HAIRS, HAIR_STYLES, TS, pick, MAP_W } from './data'
 import type { Tile, Colonist, BuildingDef } from './types'
 import { placeHQ, refreshTileEl } from './map'
 import { addLog, renderResources, selCol, updPauseBtn } from './ui'
 
 export function placeBuilding(bd: BuildingDef, ti: Tile) {
   if (bd.isHQ) { placeHQ(ti); return }
-  if (ti.bldg) { addLog('Tile occupied', 'warn'); return }
   if (ti.type === 'water') { addLog("Can't build on water", 'warn'); return }
   if (!G.hqPlaced) { addLog('Place HQ first!', 'warn'); return }
+
+  const isLarge = !bd.field && bd.id !== 'campfire'
+  if (isLarge) {
+    // проверяем все 4 тайла
+    const positions = [
+      { col: ti.col, row: ti.row },
+      { col: ti.col + 1, row: ti.row },
+      { col: ti.col, row: ti.row + 1 },
+      { col: ti.col + 1, row: ti.row + 1 },
+    ]
+    for (const { col, row } of positions) {
+      const t = G.tiles[row * MAP_W + col]
+      if (!t || t.bldg || t.type === 'water') {
+        addLog("Not enough space for " + bd.name, 'warn'); return
+      }
+    }
+  } else {
+    if (ti.bldg) { addLog('Tile occupied', 'warn'); return }
+  }
+
   for (const [r, a] of Object.entries(bd.cost)) {
     if ((G.res[r as keyof typeof G.res] || 0) < (a as number)) {
       addLog('Need ' + a + ' ' + r + ' for ' + bd.name, 'warn'); return
@@ -21,22 +40,43 @@ export function placeBuilding(bd: BuildingDef, ti: Tile) {
 
 export function finishPlace(bd: BuildingDef, ti: Tile, crop: string | null) {
   if (crop) G.res.seeds = Math.max(0, G.res.seeds - 5)
-  ti.bldg = {
+  
+  const isLarge = !bd.field && bd.id !== 'campfire'
+  
+  const bldgData = {
     id: bd.id, buildTime: bd.time, totalTime: bd.time, lv: 1,
-    field: !!bd.field, crop, growth: 0, phase: 'seeding', seedTimer: 0, paused: false,
+    field: !!bd.field, crop, growth: 0, phase: 'seeding' as const,
+    seedTimer: 0, paused: false,
   }
+
+  if (isLarge) {
+    // занимаем 2x2 тайла
+    const positions = [
+      { col: ti.col, row: ti.row },
+      { col: ti.col + 1, row: ti.row },
+      { col: ti.col, row: ti.row + 1 },
+      { col: ti.col + 1, row: ti.row + 1 },
+    ]
+    positions.forEach(({ col, row }, idx) => {
+      const t = G.tiles[row * MAP_W + col]
+      if (!t) return
+      if (idx === 0) {
+        t.bldg = { ...bldgData, isMain: true }
+      } else {
+        t.bldg = { ...bldgData, buildTime: bd.time, totalTime: bd.time, mainCol: ti.col, mainRow: ti.row }
+      }
+      refreshTileEl(t)
+    })
+  } else {
+    ti.bldg = { ...bldgData }
+    refreshTileEl(ti)
+  }
+
   G.buildings.push({
     id: bd.id, col: ti.col, row: ti.row, lv: 1, paused: false,
     field: !!bd.field, crop, growth: 0, phase: 'seeding', seedTimer: 0,
   })
   if (bd.shelter) G.shelter += bd.shelter
-  if (bd.id === 'storehouse' && G.groundSupplies) {
-    const gs = G.groundSupplies
-    gs.resPile = null; G.groundSupplies = null
-    addLog('Supplies stored in Storehouse!', 'good')
-    refreshTileEl(gs)
-  }
-  refreshTileEl(ti)
   renderResources()
   addLog('Building: ' + bd.ico + ' ' + bd.name, 'warn')
   G.placingBldg = null
@@ -66,7 +106,7 @@ export function refreshSprites() {
 
 export function posSprite(c: Colonist) {
   const sp = document.getElementById('sp-' + c.id); if (!sp) return
-  const ox = (c.id % 3) * 6 - 6, oy = Math.floor(c.id / 3) * 5 - 5
+  const ox = (c.id % 3) * 3 - 3, oy = Math.floor(c.id / 3) * 3 - 3
   sp.style.left = c.col * TS + TS / 2 - 13 + ox + 'px'
   sp.style.top = c.row * TS + TS / 2 - 27 + oy + 'px'
 }
