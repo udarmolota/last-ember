@@ -352,12 +352,59 @@ body::after {
   background: var(--bg2);
   border-bottom: 2px solid var(--border);
   display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+#hdr-row1 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+#hdr-row2 {
+  display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
+  padding: 2px 8px;
+  background: var(--bg3);
+  border-top: 1px solid var(--border);
+  min-height: 18px;
+  overflow: hidden;
 }
+#hdr-status-label {
+  font-size: 10px;
+  color: var(--accent2);
+  flex-shrink: 0;
+}
+#advbody-inline {
+  display: flex;
+  gap: 10px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+#advbody-inline .advline {
+  font-size: 9px;
+  color: var(--textdim);
+  white-space: nowrap;
+}
+#advbody-inline .advline.warn { color: var(--warn); font-weight: bold; }
+#advbody-inline .advline.danger { color: var(--danger); font-weight: bold; }
+#advbody-inline .advline.good { color: var(--accent); }
+#res-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.ri {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+.ri-ico { font-size: 11px; }
+.ri-num { font-size: 11px; color: var(--accent); font-weight: bold; }
 #hdr-logo {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 15px;
@@ -416,7 +463,7 @@ body::after {
 /* RESOURCE BAR */
 #res-bar {
   background: var(--bg2);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0px solid var(--border);
   display: flex;
   padding: 3px 8px;
   gap: 12px;
@@ -670,20 +717,18 @@ body::after {
 
 /* SPRITE */
 .spr {
-  transition: transform 0.15s, left 0.45s linear, top 0.45s linear;
   position: absolute;
-  width: 26px;
-  height: 32px;
+  width: 16px;
+  height: 20px;
   z-index: 20;
   cursor: pointer;
   display: block;
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.38));
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.38));
   transition: left 0.45s linear, top 0.45s linear, filter 0.2s, transform 0.2s;
 }
 .spr:hover {
   transform: scale(1.18);
   z-index: 30;
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45));
 }
 .spr.zzz {
   opacity: 0.62;
@@ -694,46 +739,43 @@ body::after {
 }
 .doll-body {
   position: absolute;
-  left: 3px;
-  right: 3px;
+  left: 2px;
+  right: 2px;
   bottom: 0;
-  height: 23px;
-  border: 2px solid #1e1a13;
+  height: 12px;
+  border: 1px solid #1e1a13;
   border-radius: 48% 48% 42% 42%/46% 46% 36% 36%;
   background: var(--col);
-  box-shadow: inset 4px 0 rgba(255, 255, 255, 0.18),
-    inset -4px -4px rgba(0, 0, 0, 0.18);
 }
 .doll-head {
   position: absolute;
-  left: 6px;
+  left: 4px;
   top: 1px;
-  width: 14px;
-  height: 15px;
-  border: 2px solid #1e1a13;
+  width: 8px;
+  height: 8px;
+  border: 1px solid #1e1a13;
   border-radius: 50%;
   background: var(--skin);
   z-index: 3;
-  box-shadow: inset 3px 0 rgba(255, 255, 255, 0.18);
 }
 .doll-face {
   position: absolute;
-  left: 4px;
-  right: 4px;
-  top: 7px;
-  height: 2px;
-  border-left: 2px solid #2b1c14;
-  border-right: 2px solid #2b1c14;
+  left: 5px;
+  top: 5px;
+  width: 2px;
+  height: 1px;
+  border-left: 1px solid #2b1c14;
+  border-right: 1px solid #2b1c14;
   z-index: 5;
 }
 .doll-hair {
   position: absolute;
-  left: 4px;
-  top: -1px;
-  width: 18px;
-  height: 12px;
+  left: 3px;
+  top: 0px;
+  width: 10px;
+  height: 6px;
   background: var(--hair);
-  border: 2px solid #1e1a13;
+  border: 1px solid #1e1a13;
   border-bottom: none;
   border-radius: 50% 50% 36% 36%;
   z-index: 4;
@@ -741,57 +783,53 @@ body::after {
 .doll-hair.bun::after {
   content: '';
   position: absolute;
-  left: 4px;
-  top: -7px;
-  width: 7px;
-  height: 7px;
+  left: 2px;
+  top: -4px;
+  width: 4px;
+  height: 4px;
   background: var(--hair);
-  border: 2px solid #1e1a13;
+  border: 1px solid #1e1a13;
   border-radius: 50%;
 }
 .doll-hair.pigtails::before,
 .doll-hair.pigtails::after {
   content: '';
   position: absolute;
-  top: 3px;
-  width: 8px;
-  height: 10px;
+  top: 2px;
+  width: 4px;
+  height: 5px;
   background: var(--hair);
-  border: 2px solid #1e1a13;
+  border: 1px solid #1e1a13;
   border-radius: 50%;
 }
-.doll-hair.pigtails::before {
-  left: -8px;
-}
-.doll-hair.pigtails::after {
-  right: -8px;
-}
+.doll-hair.pigtails::before { left: -4px; }
+.doll-hair.pigtails::after { right: -4px; }
 .doll-hair.mohawk {
-  left: 10px;
-  width: 7px;
-  height: 15px;
+  left: 6px;
+  width: 4px;
+  height: 8px;
   border-radius: 45% 45% 20% 20%;
 }
 .doll-hair.beard::after {
   content: '';
   position: absolute;
-  left: 2px;
-  right: 2px;
-  top: 9px;
-  height: 10px;
+  left: 1px;
+  right: 1px;
+  top: 5px;
+  height: 5px;
   background: var(--hair);
-  border: 2px solid #1e1a13;
+  border: 1px solid #1e1a13;
   border-top: none;
   border-radius: 0 0 50% 50%;
 }
 .doll-mark {
   position: absolute;
-  left: 11px;
-  bottom: 8px;
-  width: 4px;
-  height: 4px;
+  left: 6px;
+  bottom: 4px;
+  width: 2px;
+  height: 2px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255,255,255,0.55);
   z-index: 4;
 }
 

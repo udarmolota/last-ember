@@ -44,7 +44,7 @@ export function getTarget(c: Colonist) {
     case 'COOK': return bof('kitchen', 'campfire') || hq
     case 'MEDIC': return bof('infirmary') || hq
     case 'TAILOR': return bof('weaver') || hq
-    case 'BUILDER': return G.tiles.find((t) => t.bldg && t.bldg.buildTime > 0) || hq
+    case 'BUILDER': return G.tiles.find((t) => t.bldg && t.bldg.buildTime > 0 && t.bldg.isMain) || hq
     case 'HUNTER': return ftile('grass') || hq
     case 'PORTER': return G.tiles.find((t) => t.resPile && t.resPile.amount > 0) || (c.carryAmt > 0 ? bof('storehouse') || hq : hq)
     case 'GUARD': return bof('barracks') || hq
@@ -178,7 +178,7 @@ export function doWork(c: Colonist) {
       break
     }
     case 'BUILDER': {
-      const site = G.tiles.find((t) => t.bldg && t.bldg.buildTime > 0)
+      const site = G.tiles.find((t) => t.bldg && t.bldg.buildTime > 0 && t.bldg.isMain)
       if (site) {
         c.targetCol = site.col; c.targetRow = site.row
         const dist = Math.sqrt(Math.pow(c.col - site.col, 2) + Math.pow(c.row - site.row, 2))
@@ -221,7 +221,7 @@ export function updNight() {
     if (c.sleeping) {
       c.action = 'SLEEPING'
       if (!c.shelterAssigned) {
-        const shelterTiles = G.tiles.filter((t) => t.bldg && (t.bldg.id === 'tent' || t.bldg.id === 'house') && t.bldg.buildTime <= 0)
+        const shelterTiles = G.tiles.filter((t) => t.bldg && (t.bldg.id === 'tent' || t.bldg.id === 'house') && t.bldg.buildTime <= 0 && t.bldg.isMain)
         let assigned = false
         for (const s of shelterTiles) {
           const cap = s.bldg!.id === 'tent' ? 2 : 4
@@ -364,7 +364,7 @@ export function tickConstruction() {
       if (builders === 0 || isNight) return
       ti.bldg.buildTime = Math.max(0, ti.bldg.buildTime - (1 + builders))
       refreshTileEl(ti)
-      if (ti.bldg.buildTime === 0) {
+      if (ti.bldg.buildTime === 0 && ti.bldg.isMain) {
         const bd = BLDGS.find((b) => b.id === ti.bldg!.id)
         addLog((bd ? bd.ico + ' ' + bd.name : 'Building') + ' complete!', 'good')
       }
@@ -405,7 +405,7 @@ export function renderAdvisor() {
     if (sites && !builders) lines.push(['warn', `${sites} construction site(s), no builder assigned.`])
     if (!sites && !piles.length) lines.push(['good', 'Stable. Expand production before Herald returns.'])
   }
-  const body = document.getElementById('advbody')
+  const body = document.getElementById('advbody-inline')
   if (body) body.innerHTML = lines.slice(0, 5).map(([cls, txt]) => `<div class="advline ${cls}">${txt}</div>`).join('')
 }
 

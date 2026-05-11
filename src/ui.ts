@@ -295,7 +295,7 @@ export function showModal(title: string, text: string, btns: Array<{ label: stri
 
 export function updPauseBtn() {
   const b = document.getElementById('pbtn') as HTMLButtonElement
-  b.textContent = G.paused ? '▶ PLAY' : '⏸ PAUSE'
+  b.textContent = G.paused ? '▶' : '⏸'
   b.classList.toggle('paused', G.paused)
 }
 

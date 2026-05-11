@@ -102,6 +102,8 @@ export function refreshTileEl(ti: Tile) {
   el.className = 'tile ' + tileClass(ti)
   el.innerHTML = ''
   const ico = document.createElement('span')
+  ico.style.fontSize = '11px'
+
   if (ti.bldg) {
     const bd = BLDGS.find((b) => b.id === ti.bldg!.id)
     // вторичный тайл 2x2 — только фон, без иконки
@@ -126,16 +128,13 @@ export function refreshTileEl(ti: Tile) {
       else if (phase === 'growing') ico.textContent = g < 40 ? ci.growing25 : ci.growing75
       else if (phase === 'harvest') ico.textContent = ci.harvest
       else ico.textContent = '🟫'
-      ico.style.fontSize = '11px'
     } else {
       const bldgIco = bd ? bd.ico : ti.bldg.id === 'hq' ? '🏚' : '🏗'
-      // главный тайл большого здания — иконка 2x2
       if (ti.bldg.isMain && ti.bldg.id !== 'campfire') {
         ico.textContent = bldgIco
         ico.style.cssText = `position:absolute;font-size:28px;top:0;left:0;width:${TS*2}px;height:${TS*2}px;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none;line-height:1;`
       } else {
         ico.textContent = bldgIco
-        ico.style.fontSize = '11px'
       }
     }
     if (ti.bldg.buildTime > 0) {
@@ -143,8 +142,22 @@ export function refreshTileEl(ti: Tile) {
       p.style.width = Math.round((1 - ti.bldg.buildTime / ti.bldg.totalTime) * 100) + '%'
       el.appendChild(p)
     }
+  } else {
+    // обычный тайл — иконка биома
+    switch (ti.type) {
+      case 'forest': ico.textContent = Math.random() < 0.5 ? '🌲' : '🌳'; break
+      case 'water':  ico.textContent = '💧'; break
+      case 'ore':    ico.textContent = '🟤'; break
+      case 'rock':   ico.textContent = '🪨'; break
+      case 'soil':   ico.textContent = '🟫'; break
+      case 'road':   ico.textContent = ''; break
+      default:       ico.textContent = ''; break
+    }
+    if (ti.res && ti.resAmt > 0) ico.textContent = ti.res === 'berries' ? '🫐' : '🍄'
   }
+
   el.appendChild(ico)
+
   if (ti.resPile && (ti.resPile.amount > 0 || ti.resPile.type === 'supplies')) {
     const p = document.createElement('div'); p.className = 'rpile'
     if (ti.resPile.type === 'supplies') {
@@ -157,7 +170,8 @@ export function refreshTileEl(ti: Tile) {
     el.appendChild(p)
   }
   if ((ti.type === 'forest' || ti.type === 'ore' || ti.type === 'rock') && ti.resAmt > 0 && !ti.bldg) {
-    const lbl = document.createElement('div'); lbl.className = 'tlbl'; lbl.textContent = String(ti.resAmt); el.appendChild(lbl)
+    const lbl = document.createElement('div'); lbl.className = 'tlbl'
+    lbl.textContent = String(ti.resAmt); el.appendChild(lbl)
   }
   if (ti.bldg && ti.bldg.field && ti.bldg.buildTime <= 0 && ti.bldg.crop) {
     const lbl = document.createElement('div'); lbl.className = 'tlbl'

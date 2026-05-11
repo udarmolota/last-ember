@@ -106,7 +106,7 @@ export function refreshSprites() {
 
 export function posSprite(c: Colonist) {
   const sp = document.getElementById('sp-' + c.id); if (!sp) return
-  const ox = (c.id % 3) * 3 - 3, oy = Math.floor(c.id / 3) * 3 - 3
-  sp.style.left = c.col * TS + TS / 2 - 13 + ox + 'px'
-  sp.style.top = c.row * TS + TS / 2 - 27 + oy + 'px'
+  const ox = (c.id % 3) * 2 - 2, oy = Math.floor(c.id / 3) * 2 - 2
+  sp.style.left = c.col * TS + TS / 2 - 8 + ox + 'px'
+  sp.style.top = c.row * TS + TS / 2 - 16 + oy + 'px'
 }
