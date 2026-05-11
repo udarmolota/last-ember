@@ -1,7 +1,8 @@
 import { G } from './state'
 import { SKINS, HAIRS, HAIR_STYLES, TS, pick } from './data'
 import type { Tile, Colonist, BuildingDef } from './types'
-import { refreshTileEl } from './map'
+import { placeHQ, refreshTileEl } from './map'
+import { addLog, renderResources, selCol, updPauseBtn } from './ui'
 
 export function placeBuilding(bd: BuildingDef, ti: Tile) {
   if (bd.isHQ) { placeHQ(ti); return }

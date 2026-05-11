@@ -550,8 +550,8 @@ export const BCAT_DATA = {
   STORAGE: '📦',
   OTHER: '⚙',
 };
-export const rnd = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
-export const pick = (a) => a[Math.floor(Math.random() * a.length)];
+export const rnd = (a: number, b: number) => Math.floor(Math.random() * (b - a + 1)) + a;
+export const pick = <T>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
 export const isNightTime = () => G.hour < 6 || G.hour >= 21;
 export const PROF_TOOL = {
   LUMBERJACK: 'Axe',
@@ -568,3 +568,4 @@ export const PROF_TOOL = {
   GUARD: 'Knife',
   GATHERER: null,
 };
+import { G } from './state'

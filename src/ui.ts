@@ -2,6 +2,7 @@ import { G } from './state'
 import { TRAITS, PROF, PICO, BLDGS, BCAT_DATA, PROF_TOOL, rnd } from './data'
 import type { BuildingDef } from './types'
 import { SFX } from './audio'
+import { getToolFromStock, returnToolToStock } from './colonists'
 
 // ── SIDEBAR ──
 export function renderSidebar() {
@@ -53,11 +54,11 @@ export function showCdet(id: number) {
     <div class="cdr"><span class="cdl">Weapon</span><span class="cdv" style="color:var(--accent2)">${c.weapon ? c.weapon.type + ' ' + c.weapon.dur + '%' : 'none'}</span></div>
     <div style="font-size:9px;color:var(--textdim);margin:5px 0 3px">PREFS & SKILLS</div>`
   PROF.forEach((p) => {
-    const sk = c.skill[p as any] || 0, pr = c.prefs[p as any] || 1
+    const sk = c.skill[p as keyof typeof c.skill] || 0, pr = c.prefs[p as keyof typeof c.prefs] || 1
     let st = ''
     for (let i = 1; i <= 5; i++)
       st += `<span class="cds${i <= pr ? ' lit' : ''}" data-id="${id}" data-p="${p}" data-s="${i}">★</span>`
-    h += `<div class="cdprow"><span class="cdpj">${PICO[p as any]} ${p.slice(0, 5)}</span><div class="cdst">${st}</div><span style="font-size:8px;color:var(--dim);margin-left:2px">${sk}%</span></div>`
+    h += `<div class="cdprow"><span class="cdpj">${PICO[p as keyof typeof PICO]} ${p.slice(0, 5)}</span><div class="cdst">${st}</div><span style="font-size:8px;color:var(--dim);margin-left:2px">${sk}%</span></div>`
   })
   document.getElementById('cdbody')!.innerHTML = h
   document.querySelectorAll('.cds').forEach((s) =>
@@ -87,7 +88,7 @@ export function renderBuild() {
   CATS.forEach((cat) => {
     const b = document.createElement('div')
     b.className = 'bcat' + (cat === activeCat ? ' active' : '')
-    b.title = cat; b.setAttribute('aria-label', cat); b.textContent = BCAT_DATA[cat]
+    b.title = cat; b.setAttribute('aria-label', cat); b.textContent = BCAT_DATA[cat as keyof typeof BCAT_DATA]
     b.addEventListener('click', () => { activeCat = cat; renderBuild() })
     cats.appendChild(b)
   })
@@ -209,7 +210,7 @@ export function renderAssign() {
     const sel = document.createElement('select'); sel.className = 'rs'
     PROF.forEach((p) => {
       const o = document.createElement('option'); o.value = p
-      o.textContent = PICO[p as any] + ' ' + p
+      o.textContent = PICO[p as keyof typeof PICO] + ' ' + p
       if (p === col.role) o.selected = true
       sel.appendChild(o)
     })

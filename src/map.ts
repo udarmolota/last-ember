@@ -1,6 +1,9 @@
 import { G } from './state'
 import { BLDGS, MAP_W, MAP_H, TS, rnd, pick } from './data'
 import type { Tile } from './types'
+import { refreshSprites, placeBuilding } from './buildings'
+import { addLog, renderLog, updPauseBtn } from './ui'
+import { openCraftShop, openWorkshop } from './game'
 
 export function genMap() {
   G.tiles = []

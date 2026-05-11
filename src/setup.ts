@@ -31,11 +31,11 @@ export function buildSetup() {
   const sel = new Set<number>()
   pool.forEach((c, i) => {
     const tr = TRAITS.find((t) => t.id === c.trait)!
-    const best = PROF.reduce((a, b) => c.prefs[a] >= c.prefs[b] ? a : b)
+    const best = PROF.reduce((a, b) => c.prefs[a as keyof typeof c.prefs] >= c.prefs[b as keyof typeof c.prefs] ? a : b)
     const card = document.createElement('div')
     card.className = 'cpc'
     card.dataset.i = String(i)
-    card.innerHTML = `<div class="cp-dot" style="background:${c.color}"></div><div class="cp-info"><div class="cp-name">${c.name}</div><div class="cp-sub">${tr.label} · ${c.gender}</div><div class="cp-pref">★ ${PICO[best]} ${best}</div></div>`
+    card.innerHTML = `<div class="cp-dot" style="background:${c.color}"></div><div class="cp-info"><div class="cp-name">${c.name}</div><div class="cp-sub">${tr.label} · ${c.gender}</div><div class="cp-pref">★ ${PICO[best as keyof typeof PICO]} ${best}</div></div>`
     card.addEventListener('click', () => {
       if (sel.has(i)) { sel.delete(i); card.classList.remove('sel') }
       else { if (sel.size >= 5) return; sel.add(i); card.classList.add('sel') }
@@ -48,7 +48,7 @@ export function buildSetup() {
   startBtn.addEventListener('click', () => {
     SUPPLIES.forEach((s) => {
       if (supQty[s.id] > 0)
-        G.res[s.res] = (G.res[s.res] || 0) + supQty[s.id] * s.qty
+        G.res[s.res as keyof typeof G.res] = (G.res[s.res as keyof typeof G.res] || 0) + supQty[s.id] * s.qty
     })
     G.colonists = [...sel].map((i, idx) => {
       const c = { ...pool[i] }; c.id = idx; return c

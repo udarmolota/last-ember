@@ -3,6 +3,9 @@ import { TRAITS, BLDGS, PROF_TOOL, rnd, pick, isNightTime } from './data'
 import type { Colonist, Tile } from './types'
 import { refreshTileEl } from './map'
 import { SFX } from './audio'
+import { addLog, renderAssign, renderResources, renderSidebar, selCol, showModal, updPauseBtn } from './ui'
+import { genPool } from './setup'
+import { dollHTML, posSprite } from './buildings'
 
 export function getTarget(c: Colonist) {
   const hq = { col: G.hqCol, row: G.hqRow }

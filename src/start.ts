@@ -1,5 +1,5 @@
 import { G } from './state'
-import { PROF, PROF_TOOL, MAP_W, rnd } from './data'
+import { PROF, PROF_TOOL, MAP_W, MAP_H, rnd } from './data'
 import { genMap, renderMap, centerOn } from './map'
 import { renderSidebar, renderResources, renderBuild, renderAssign, renderLog } from './ui'
 import { renderAdvisor } from './colonists'
