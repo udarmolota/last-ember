@@ -77,6 +77,7 @@ export interface Colonist {
   attackTimer?: number
   priorityTarget?: { col: number; row: number; role?: string } | null
   waterTask?: { col: number; row: number } | null
+  priorityPile?: { col: number; row: number; res: string } | null
   // warning flags
   _warnedHunger?: boolean
   _warnedThirst?: boolean
@@ -191,6 +192,18 @@ export interface CraftDef {
   weapon?: boolean
 }
 
+// ── WORKSHOP QUEUE ──
+export interface WorkshopQueueItem {
+  id: string
+  toolType: string
+  ico: string
+  timeLeft: number
+  weapon?: boolean
+  dur?: number
+  role?: string
+  shop: string
+}
+
 // ── GAME STATE ──
 export interface GameState {
   day: number
@@ -208,6 +221,7 @@ export interface GameState {
   hqCol: number
   hqRow: number
   hqLevel: number
+  development: number
   shelter: number
   log: LogEntry[]
   selectedCol: number | null
@@ -218,7 +232,10 @@ export interface GameState {
   lastStranger: number
   porterPileIdx: number
   toolStock: Record<string, number>
+  workshopQueue: WorkshopQueueItem[]
   raidPending: boolean
+  hqUpgradeTimer: number
+  hqUpgradeVisual: boolean
   // optional runtime fields
   enemies?: Enemy[]
   combatMode?: boolean

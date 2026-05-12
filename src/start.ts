@@ -1,5 +1,5 @@
 import { G } from './state'
-import { PROF, PROF_TOOL, MAP_W, MAP_H, rnd } from './data'
+import { PROF, PROF_WOOD_TOOL, MAP_W, MAP_H, rnd } from './data'
 import { genMap, renderMap, centerOn } from './map'
 import { renderSidebar, renderResources, renderBuild, renderAssign, renderLog } from './ui'
 import { renderAdvisor } from './colonists'
@@ -18,14 +18,9 @@ export function startGame() {
   G.startingRes = { ...G.res }
   G.toolStock = {}
   G.colonists.forEach((c) => {
-    const needed = PROF_TOOL[c.role]
-    if (needed) { const key = needed.replace(/ /g, '_'); G.toolStock[key] = (G.toolStock[key] || 0) + 1 }
-  })
-  G.colonists.forEach((c) => {
-    const needed = PROF_TOOL[c.role]
-    if (needed) c.tool = { type: 'Stone ' + needed, dur: 80 }
-    else c.tool = { type: '—', dur: 100 }
-    c.weapon = { type: 'Stone Knife', dur: 60 }
+    const woodType = PROF_WOOD_TOOL[c.role]
+    c.tool = { type: woodType || '—', dur: 50 }
+    c.weapon = { type: 'Wood Knife', dur: 60 }
   })
   G.firstRaidDay = rnd(8, 15)
   G.firstRaidDone = false

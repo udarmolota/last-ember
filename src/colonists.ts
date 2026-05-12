@@ -1,9 +1,9 @@
 import { G } from './state'
-import { TRAITS, BLDGS, PROF_TOOL, rnd, pick, isNightTime } from './data'
-import type { Colonist, Tile } from './types'
+import { TRAITS, BLDGS, CRAFTS, DEV_POINTS, PROF_WOOD_TOOL, PROF_STONE_TOOL, rnd, pick, isNightTime } from './data'
+import type { Colonist, Tile, WorkshopQueueItem } from './types'
 import { refreshTileEl } from './map'
 import { SFX } from './audio'
-import { addLog, renderAssign, renderResources, renderSidebar, selCol, showModal, updPauseBtn } from './ui'
+import { addLog, renderAssign, renderBuild, renderResources, renderSidebar, selCol, showModal, updPauseBtn } from './ui'
 import { genPool } from './setup'
 import { dollHTML, posSprite } from './buildings'
 
@@ -19,10 +19,7 @@ export function getTarget(c: Colonist) {
   if (c.priorityTarget) {
     const pt = c.priorityTarget
     const dist = Math.sqrt(Math.pow(c.col - pt.col, 2) + Math.pow(c.row - pt.row, 2))
-    if (dist < 0.9) {
-      if (c.waterTask) { G.res.water += 20; addLog(c.name + ' fetched water 💧', 'good'); c.waterTask = null }
-      c.priorityTarget = null
-    } else return pt
+    if (dist < 0.9) { c.priorityTarget = null } else return pt
   }
   switch (c.role) {
     case 'FARMER': return bof('field') || ftile('soil') || hq
@@ -37,16 +34,19 @@ export function getTarget(c: Colonist) {
       return rocks.length ? rocks[c.id % rocks.length] : hq
     }
     case 'STONEMASON': {
-      const rocks = G.tiles.filter((t) => t.type === 'rock' && t.resAmt > 0)
-      return rocks.length ? rocks[c.id % rocks.length] : hq
+      const ws = G.tiles.find((t) => t.bldg && t.bldg.id === 'workshop' && t.bldg.buildTime <= 0 && t.bldg.isMain)
+      return ws ? { col: ws.col, row: ws.row } : hq
     }
     case 'BLACKSMITH': return bof('forge') || hq
     case 'COOK': return bof('kitchen', 'campfire') || hq
     case 'MEDIC': return bof('infirmary') || hq
     case 'TAILOR': return bof('weaver') || hq
-    case 'BUILDER': return G.tiles.find((t) => t.bldg && t.bldg.buildTime > 0 && t.bldg.isMain) || hq
+    case 'BUILDER': {
+      const sites = G.tiles.filter((t) => t.bldg && t.bldg.buildTime > 0 && t.bldg.isMain)
+      return sites.length ? sites.reduce((a, b) => a.bldg!.buildTime <= b.bldg!.buildTime ? a : b) : hq
+    }
     case 'HUNTER': return ftile('grass') || hq
-    case 'PORTER': return G.tiles.find((t) => t.resPile && t.resPile.amount > 0) || (c.carryAmt > 0 ? bof('storehouse') || hq : hq)
+    case 'PORTER': return c.carryAmt > 0 ? (bof('storehouse') || hq) : (G.tiles.find((t) => t.resPile && t.resPile.amount > 0) || hq)
     case 'GUARD': return bof('barracks') || hq
     case 'GATHERER': {
       const patches = G.tiles.filter((t) => (t.res === 'berries' || t.res === 'mushrooms') && t.resAmt > 0)
@@ -59,6 +59,24 @@ export function getTarget(c: Colonist) {
 export function doWork(c: Colonist) {
   if (c.sleeping || c.dead) return
   if (isNightTime()) { c.action = 'SLEEPING'; return }
+  if (c.waterTask) {
+    const dist = Math.hypot(c.col - c.waterTask.col, c.row - c.waterTask.row)
+    if (dist < 1.5) {
+      G.res.water += 20; addLog(c.name + ' fetched water +20💧', 'good')
+      c.waterTask = null; c.priorityTarget = null
+    } else {
+      c.targetCol = c.waterTask.col; c.targetRow = c.waterTask.row
+      c.action = 'FETCHING WATER'
+    }
+    return
+  }
+  if (c.priorityTarget) { c.action = 'GOING'; return }
+  if (!c.tool || c.tool.type === '—' || c.tool.dur <= 0) {
+    const depots = G.buildings.filter((b) => (b.id === 'storehouse' || b.id === 'hq' || b.id === 'workshop' || b.id === 'forge') && !b.paused)
+    for (const d of depots) {
+      if (Math.hypot(c.col - d.col, c.row - d.row) < 1.5) { tryEquipTool(c); break }
+    }
+  }
   const tr = TRAITS.find((t) => t.id === c.trait)!
   const sk = (c.skill as any)[c.role] || 0
   const pref = (c.prefs as any)[c.role] || 1
@@ -134,8 +152,26 @@ export function doWork(c: Colonist) {
       else c.action = 'HUNTING'
       break
     case 'PORTER': {
-      const hasStore = G.buildings.some((b) => b.id === 'storehouse' && !b.paused)
+      const hasStore = G.buildings.some((b) => (b.id === 'storehouse' || b.id === 'hq') && !b.paused)
       if (!hasStore) { c.action = 'IDLE'; break }
+      if (!c.carryAmt && c.priorityPile) {
+        const pp = c.priorityPile
+        const dist = Math.hypot(c.col - pp.col, c.row - pp.row)
+        if (dist < 0.8) {
+          const ppTile = G.tiles.find((t) => t.col === pp.col && t.row === pp.row)
+          if (ppTile?.resPile && ppTile.resPile.amount > 0) {
+            const take = Math.min(10, ppTile.resPile.amount)
+            ppTile.resPile.amount -= take; c.carryType = ppTile.resPile.type; c.carryAmt = take
+            if (ppTile.resPile.amount <= 0) ppTile.resPile = null
+            refreshTileEl(ppTile); c.action = 'CARRYING ' + c.carryType!.toUpperCase()
+          }
+          c.priorityPile = null
+          c.priorityTarget = null
+        } else {
+          c.targetCol = pp.col; c.targetRow = pp.row; c.action = 'FETCHING ' + pp.res
+        }
+        break
+      }
       if (!c.carryAmt) {
         const piles = G.tiles.filter((t) => t.resPile && t.resPile.amount > 0)
         if (piles.length > 0) {
@@ -178,7 +214,8 @@ export function doWork(c: Colonist) {
       break
     }
     case 'BUILDER': {
-      const site = G.tiles.find((t) => t.bldg && t.bldg.buildTime > 0 && t.bldg.isMain)
+      const sites = G.tiles.filter((t) => t.bldg && t.bldg.buildTime > 0 && t.bldg.isMain)
+      const site = sites.length ? sites.reduce((a, b) => a.bldg!.buildTime <= b.bldg!.buildTime ? a : b) : null
       if (site) {
         c.targetCol = site.col; c.targetRow = site.row
         const dist = Math.sqrt(Math.pow(c.col - site.col, 2) + Math.pow(c.row - site.row, 2))
@@ -195,13 +232,40 @@ export function doWork(c: Colonist) {
       } else c.action = 'IDLE'
       break
     }
+    case 'STONEMASON': {
+      const ws = G.tiles.find((t) => t.bldg && t.bldg.id === 'workshop' && t.bldg.buildTime <= 0)
+      if (!ws) { c.action = 'IDLE'; break }
+      const item = G.workshopQueue.find((i) => i.shop === 'workshop')
+      if (item) {
+        c.action = 'CRAFTING ' + item.ico
+        item.timeLeft--
+        if (item.timeLeft <= 0) { G.workshopQueue = G.workshopQueue.filter((i) => i !== item); completeItem(item) }
+      } else c.action = 'AT WORKSHOP'
+      break
+    }
+    case 'BLACKSMITH': {
+      const forge = G.tiles.find((t) => t.bldg && t.bldg.id === 'forge' && t.bldg.buildTime <= 0)
+      if (!forge) { c.action = 'IDLE'; break }
+      const item = G.workshopQueue.find((i) => i.shop === 'forge')
+      if (item) {
+        c.action = 'CRAFTING ' + item.ico
+        item.timeLeft--
+        if (item.timeLeft <= 0) { G.workshopQueue = G.workshopQueue.filter((i) => i !== item); completeItem(item) }
+      } else c.action = 'AT FORGE'
+      break
+    }
+    case 'GUARD': {
+      c.action = c.tool && c.tool.type !== '—' && c.tool.dur > 0 ? 'PATROLLING' : 'ON GUARD'
+      break
+    }
     default: c.action = 'IDLE'
   }
   if (c.role && c.action !== 'IDLE')
     (c.skill as any)[c.role] = Math.min(100, ((c.skill as any)[c.role] || 0) + (Math.random() < 0.04 ? 1 : 0))
-  if (c.action !== 'IDLE' && c.action !== 'RESTING')
+  if (c.action !== 'IDLE' && c.action !== 'RESTING' && c.tool && c.tool.type !== '—' && c.tool.type !== 'Kit') {
     c.tool.dur = Math.max(0, c.tool.dur - (Math.random() < 0.02 ? 1 : 0))
-  if (c.tool.dur === 0) { addLog(c.name + "'s tool broke!", 'warn'); c.tool.dur = 10 }
+    if (c.tool.dur === 0) addLog(c.name + "'s tool broke! Needs replacement.", 'warn')
+  }
 }
 
 export function addPile(ti: Tile, type: string, amt: number) {
@@ -227,7 +291,7 @@ export function updNight() {
           const cap = s.bldg!.id === 'tent' ? 2 : 4
           const key = s.col + ',' + s.row
           const occupants = G.colonists.filter((x) => !x.dead && x.shelterAssigned === key).length
-          if (occupants < cap) { c.shelterAssigned = key; c.targetCol = s.col; c.targetRow = s.row; assigned = true; break }
+          if (occupants < cap) { c.shelterAssigned = key; c.targetCol = s.col + 0.5; c.targetRow = s.row + 0.5; assigned = true; break }
         }
         if (!assigned) {
           const fireTile = G.tiles.find((t) => t.bldg && t.bldg.id === 'campfire' && t.bldg.buildTime <= 0)
@@ -237,7 +301,7 @@ export function updNight() {
         }
       } else {
         const [sc, sr] = c.shelterAssigned.split(',').map(Number)
-        c.targetCol = sc; c.targetRow = sr
+        c.targetCol = sc + 0.5; c.targetRow = sr + 0.5
       }
     } else { c.shelterAssigned = null }
     const sp = document.getElementById('sp-' + c.id)
@@ -365,8 +429,28 @@ export function tickConstruction() {
       ti.bldg.buildTime = Math.max(0, ti.bldg.buildTime - (1 + builders))
       refreshTileEl(ti)
       if (ti.bldg.buildTime === 0 && ti.bldg.isMain) {
-        const bd = BLDGS.find((b) => b.id === ti.bldg!.id)
-        addLog((bd ? bd.ico + ' ' + bd.name : 'Building') + ' complete!', 'good')
+        if (ti.bldg.id === 'hq' && G.hqLevel === 1) {
+          G.hqLevel = 2
+          G.hqUpgradeTimer = 1440
+          calcDevelopment()
+          addLog('⬆ HQ upgraded to Level 2! New structures unlocked.', 'good')
+          renderBuild()
+          G.paused = true; updPauseBtn()
+          showModal('HEADQUARTERS — LEVEL 2',
+            'Your settlement has grown.\n\nNew structures are now available:\nBarracks, Forge, Palisade, Well.\n\nSomewhere in the wastes,\nsomething has noticed you.',
+            [{ label: 'UNDERSTOOD', cls: 'ok', fn: () => { G.paused = false; updPauseBtn() } }]
+          )
+        } else {
+          G.tiles.forEach((sec) => {
+            if (sec.bldg && sec.bldg.mainCol === ti.col && sec.bldg.mainRow === ti.row && sec.bldg.buildTime > 0) {
+              sec.bldg.buildTime = 0
+              refreshTileEl(sec)
+            }
+          })
+          calcDevelopment()
+          const bd = BLDGS.find((b) => b.id === ti.bldg!.id)
+          addLog((bd ? bd.ico + ' ' + bd.name : 'Building') + ' complete!', 'good')
+        }
       }
     }
   })
@@ -385,12 +469,20 @@ export function tickPiles() {
   })
 }
 
+export function calcDevelopment() {
+  G.development = G.tiles
+    .filter((t) => t.bldg && t.bldg.isMain && t.bldg.buildTime <= 0)
+    .reduce((sum, t) => sum + (DEV_POINTS[t.bldg!.id] || 1), 0)
+}
+
 export function renderAdvisor() {
   const alive = G.colonists.filter((c) => !c.dead)
   const piles = G.tiles.filter((t) => t.resPile && t.resPile.amount > 0)
   const builders = alive.filter((c) => c.role === 'BUILDER').length
   const porters = alive.filter((c) => c.role === 'PORTER').length
-  const shelterCap = G.tiles.reduce((a, t) => a + (t.bldg && t.bldg.buildTime <= 0 ? t.bldg.id === 'tent' ? 2 : t.bldg.id === 'house' ? 4 : 0 : 0), 0)
+  const shelterCap = G.tiles
+    .filter((t) => t.bldg && t.bldg.isMain && t.bldg.buildTime <= 0 && (t.bldg.id === 'tent' || t.bldg.id === 'house'))
+    .reduce((a, t) => a + (t.bldg!.id === 'tent' ? 2 : 4), 0)
   const sites = G.tiles.filter((t) => t.bldg && t.bldg.buildTime > 0).length
   const lines: [string, string][] = []
   if (!G.hqPlaced) {
@@ -403,7 +495,22 @@ export function renderAdvisor() {
     if (G.res.water < alive.length * 2) lines.push(['danger', 'Water is low. Start with water barrels / build well later.'])
     if (piles.length && !porters) lines.push(['warn', `${piles.length} resource piles waiting. Assign a porter.`])
     if (sites && !builders) lines.push(['warn', `${sites} construction site(s), no builder assigned.`])
-    if (!sites && !piles.length) lines.push(['good', 'Stable. Expand production before Herald returns.'])
+    const dev = G.development || 0
+    if (G.hqLevel === 1) {
+      const pop = alive.length
+      const ok = (v: boolean, t: string) => `<span style="color:${v ? 'var(--accent)' : 'var(--danger)'}">${t}</span>`
+      const hint = [
+        ok(dev >= 12, `🏛 ${dev}/12`),
+        ok(pop >= 6,  `👥 ${pop}/6`),
+        ok(G.res.wood >= 50,  `🪵 ${G.res.wood}/50`),
+        ok(G.res.stone >= 30, `🪨 ${G.res.stone}/30`),
+      ].join(' · ')
+      lines.push(['', '— HQ UPGRADE REQUIRES —'])
+      lines.push(['', hint])
+    } else {
+      lines.push(['good', `HQ Lv.${G.hqLevel} · Dev: ${dev}`])
+    }
+    if (!sites && !piles.length && dev < 10) lines.push(['good', 'Stable. Keep building to grow development.'])
   }
   const body = document.getElementById('advbody-inline')
   if (body) body.innerHTML = lines.slice(0, 5).map(([cls, txt]) => `<div class="advline ${cls}">${txt}</div>`).join('')
@@ -425,11 +532,58 @@ export function returnToolToStock(tool: { type: string; dur: number }) {
 }
 
 export function tryEquipTool(col: Colonist) {
-  const needed = PROF_TOOL[col.role]
-  if (!needed) { col.tool = { type: '—', dur: 100 }; return }
-  if (col.tool && col.tool.type && col.tool.type.toLowerCase().includes(needed.toLowerCase())) return
-  if (col.tool && col.tool.type && col.tool.type !== '—' && col.tool.type !== 'Stone') { returnToolToStock(col.tool); col.tool = { type: '—', dur: 0 } }
-  const t = getToolFromStock(needed)
-  if (t) { col.tool = t; addLog(col.name + ' picked up ' + t.type, 'normal') }
-  else { col.tool = { type: '—', dur: 0 }; addLog('⚠ No ' + needed + ' for ' + col.name + '!', 'danger') }
+  const stoneType = PROF_STONE_TOOL[col.role]
+  const woodType = PROF_WOOD_TOOL[col.role]
+  if (!stoneType && !woodType) { col.tool = { type: '—', dur: 100 }; return }
+  // Already has correct tool
+  if (col.tool?.type && col.tool.type !== '—' && col.tool.dur > 0) {
+    if (col.tool.type === stoneType || col.tool.type === woodType) return
+    // Has a different tool — return stone/copper ones to stock, discard wood
+    if (!col.tool.type.startsWith('Wood') && col.tool.type !== 'Kit') returnToolToStock(col.tool)
+    col.tool = { type: '—', dur: 0 }
+  }
+  // Try stone first (player must have crafted it)
+  if (stoneType) {
+    const t = getToolFromStock(stoneType)
+    if (t) { col.tool = t; addLog(col.name + ' equipped ' + t.type, 'normal'); return }
+  }
+  // Try wood
+  if (woodType) {
+    const t = getToolFromStock(woodType)
+    if (t) { col.tool = t; addLog(col.name + ' equipped ' + t.type, 'normal'); return }
+  }
+}
+
+export function completeItem(item: WorkshopQueueItem) {
+  if (item.weapon) {
+    const target = G.colonists.find((co) => !co.dead && co.role === 'GUARD' && (!co.weapon || co.weapon.type.startsWith('Wood'))) ||
+                   G.colonists.find((co) => !co.dead && !co.weapon)
+    if (target) {
+      target.weapon = { type: item.toolType, dur: item.dur || 65 }
+      addLog(item.ico + ' ' + item.toolType + ' → ' + target.name, 'good')
+    } else {
+      const key = item.toolType.replace(/ /g, '_')
+      G.toolStock[key] = (G.toolStock[key] || 0) + 1
+      addLog(item.ico + ' ' + item.toolType + ' stored', 'good')
+    }
+  } else {
+    const key = item.toolType.replace(/ /g, '_')
+    G.toolStock[key] = (G.toolStock[key] || 0) + 1
+    if (item.role) {
+      const woodType = PROF_WOOD_TOOL[item.role]
+      const target = G.colonists.find((co) => !co.dead && co.role === item.role && (!co.tool || co.tool.type === '—' || co.tool.dur <= 0)) ||
+                     G.colonists.find((co) => !co.dead && co.role === item.role && co.tool?.type === woodType)
+      if (target) {
+        if (target.tool?.type && target.tool.type !== '—' && target.tool.type === woodType) {
+          returnToolToStock(target.tool); target.tool = { type: '—', dur: 0 }
+        }
+        const shopBldg = G.buildings.find((b) => b.id === item.shop && !b.paused) ||
+                         G.buildings.find((b) => (b.id === 'storehouse' || b.id === 'hq') && !b.paused)
+        if (shopBldg) {
+          target.priorityTarget = { col: shopBldg.col, row: shopBldg.row }
+          addLog(item.ico + ' ' + item.toolType + ' ready — ' + target.name + ' goes to collect it', 'good')
+        } else addLog(item.ico + ' ' + item.toolType + ' crafted!', 'good')
+      } else addLog(item.ico + ' ' + item.toolType + ' stored (no ' + item.role + ')', 'good')
+    } else addLog(item.ico + ' ' + item.toolType + ' crafted!', 'good')
+  }
 }

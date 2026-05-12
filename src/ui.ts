@@ -1,5 +1,5 @@
 import { G } from './state'
-import { TRAITS, PROF, PICO, BLDGS, BCAT_DATA, PROF_TOOL, rnd } from './data'
+import { TRAITS, PROF, PICO, BLDGS, BCAT_DATA, PROF_WOOD_TOOL, PROF_STONE_TOOL, rnd } from './data'
 import type { BuildingDef } from './types'
 import { SFX } from './audio'
 import { getToolFromStock, returnToolToStock } from './colonists'
@@ -24,7 +24,7 @@ export function renderSidebar() {
   <div class="mbr"><span class="mbl">😊</span><div class="mb"><div class="mbf" style="width:${c.mood}%;background:${mC}"></div></div></div>
   <div class="mbr"><span class="mbl" title="${topSk ? topSk[0] : 'skill'}">★</span><div class="mb"><div class="mbf" style="width:${topSk ? topSk[1] : 0}%;background:#3a70a0"></div></div><span style="font-size:8px;color:var(--dim)">${topSk ? topSk[0].slice(0, 4) + ' ' + topSk[1] + '%' : '—'}</span></div>
 </div>
-<div class="ccs" style="color:${(!c.tool || c.tool.type === '—') && PROF_TOOL[c.role] ? 'var(--danger)' : 'var(--dim)'}">${c.tool && c.tool.type && c.tool.type !== '—' ? '🔧 ' + c.tool.type : '⚠ no tool'}</div>
+<div class="ccs" style="color:${(!c.tool || c.tool.type === '—' || c.tool.dur <= 0) && (PROF_WOOD_TOOL[c.role] || PROF_STONE_TOOL[c.role]) ? 'var(--danger)' : 'var(--dim)'}">${c.tool && c.tool.type && c.tool.type !== '—' && c.tool.dur > 0 ? '🔧 ' + c.tool.type : '⚠ no tool'}</div>
 ${debuf ? '<div class="ccdf">⚡ mismatch</div>' : ''}
 ${c.hunger > 65 ? '<div class="ccdf">🍽 hungry</div>' : ''}
 ${c.thirst > 65 ? '<div class="ccdf">💧 thirsty</div>' : ''}`
@@ -94,6 +94,22 @@ export function renderBuild() {
   })
   const grid = document.getElementById('bgrid')!
   grid.innerHTML = ''
+  const _hqTile = G.tiles.find((t) => t.bldg?.id === 'hq')
+  const _upgradeInProgress = (_hqTile?.bldg?.buildTime || 0) > 0
+  if (activeCat === 'OTHER' && G.hqPlaced && G.hqLevel === 1 && !_upgradeInProgress) {
+    const alive = G.colonists.filter((c) => !c.dead).length
+    const dev = G.development || 0
+    const canUpgrade = dev >= 12 && alive >= 6 && G.res.wood >= 50 && G.res.stone >= 30
+    const req = [
+      `Dev ${dev}/12`, `Pop ${alive}/6`, `Wood ${G.res.wood}/50`, `Stone ${G.res.stone}/30`
+    ].join(' · ')
+    const btn = document.createElement('div')
+    btn.className = 'bb' + (canUpgrade ? '' : ' lk')
+    btn.title = req
+    btn.innerHTML = `<span class="bbi">⬆</span><span class="bbn">UPGRADE HQ</span><span class="bc" style="display:block;font-size:8px">${req}</span>`
+    if (canUpgrade) btn.addEventListener('click', () => upgradeHQ())
+    grid.appendChild(btn)
+  }
   if (activeCat === 'OTHER' && !G.hqPlaced) {
     const hqBtn = document.createElement('div')
     hqBtn.className = 'bb'
@@ -115,6 +131,14 @@ export function renderBuild() {
     if (!lk) btn.addEventListener('click', () => showBuildConfirm(bd))
     grid.appendChild(btn)
   })
+}
+
+function upgradeHQ() {
+  G.res.wood -= 50; G.res.stone -= 30
+  const hqTile = G.tiles.find((t) => t.bldg?.id === 'hq')
+  if (hqTile?.bldg) { hqTile.bldg.buildTime = 120; hqTile.bldg.totalTime = 120 }
+  addLog('⬆ HQ upgrade started — builder needed!', 'normal')
+  renderResources(); renderBuild()
 }
 
 function resourceLabel(k: string) {
@@ -215,15 +239,22 @@ export function renderAssign() {
       sel.appendChild(o)
     })
     sel.addEventListener('change', (e) => {
-      if (col.tool && col.tool.type && col.tool.type !== '—') { returnToolToStock(col.tool); col.tool = { type: '—', dur: 0 } }
+      if (col.tool && col.tool.type && col.tool.type !== '—') { returnToolToStock(col.tool) }
+      col.tool = { type: '—', dur: 0 }
       col.role = (e.target as HTMLSelectElement).value as any
       if (G.enemies && G.enemies.length && col.role !== 'GUARD') { col.targetCol = G.hqCol; col.targetRow = G.hqRow; col.action = 'FLEEING' }
-      const needed = PROF_TOOL[col.role]
-      if (needed) {
-        const t = getToolFromStock(needed)
-        if (t) { col.tool = t; addLog(col.name + ' → ' + col.role + ' (' + t.type + ')', 'good') }
-        else addLog('⚠ ' + col.name + ' → ' + col.role + ': no ' + needed + '!', 'danger')
-      } else { col.tool = { type: '—', dur: 100 }; addLog(col.name + ' → ' + col.role) }
+      const stoneKey = (PROF_STONE_TOOL[col.role] || '').replace(/ /g, '_')
+      const woodKey = (PROF_WOOD_TOOL[col.role] || '').replace(/ /g, '_')
+      const hasInStock = (stoneKey && (G.toolStock[stoneKey] || 0) > 0) || (woodKey && (G.toolStock[woodKey] || 0) > 0)
+      if (hasInStock) {
+        const store = G.buildings.find((b) => (b.id === 'storehouse' || b.id === 'hq' || b.id === 'workshop') && !b.paused)
+        if (store) { col.priorityTarget = { col: store.col, row: store.row }; addLog(col.name + ' → ' + col.role + ': heading for tool', 'normal') }
+        else addLog(col.name + ' → ' + col.role + ': no tool', 'warn')
+      } else if (PROF_WOOD_TOOL[col.role] || PROF_STONE_TOOL[col.role]) {
+        addLog('⚠ ' + col.name + ' → ' + col.role + ': no tool in stock!', 'warn')
+      } else {
+        addLog(col.name + ' → ' + col.role, 'normal')
+      }
       renderSidebar()
     })
     row.appendChild(nameSpan); row.appendChild(sel); el.appendChild(row)
@@ -251,6 +282,61 @@ export function renderLog() {
   document.getElementById('logp')!.innerHTML = G.log.slice(0, 14).map((e) =>
     `<div class="ll"><span class="lt">${e.t}</span><span class="lm ${e.type}"><span class="li-ico">${e.ico || '·'}</span>${e.msg}</span></div>`
   ).join('')
+}
+
+// ── TOOL STOCK ──
+const WOOD_TOOL_LIST = [
+  { key: 'Wood_Axe', ico: '🪓' }, { key: 'Wood_Pick', ico: '⛏' },
+  { key: 'Wood_Hoe', ico: '🌿' }, { key: 'Wood_Hammer', ico: '🔨' },
+  { key: 'Wood_Mallet', ico: '🪵' }, { key: 'Wood_Tongs', ico: '🔗' },
+  { key: 'Wood_Needle', ico: '🧵' }, { key: 'Wood_Bow', ico: '🏹' },
+  { key: 'Wood_Club', ico: '🏏' }, { key: 'Wood_Knife', ico: '🔪' },
+  { key: 'Kit', ico: '🧰' },
+]
+const STONE_TOOL_LIST = [
+  { key: 'Stone_Axe', ico: '🪓' }, { key: 'Stone_Pick', ico: '⛏' },
+  { key: 'Stone_Hoe', ico: '🌿' }, { key: 'Stone_Hammer', ico: '🔨' },
+  { key: 'Stone_Mallet', ico: '🪵' }, { key: 'Stone_Tongs', ico: '🔗' },
+  { key: 'Stone_Needle', ico: '🧵' }, { key: 'Stone_Arrow', ico: '🏹' },
+  { key: 'Stone_Club', ico: '🏏' }, { key: 'Stone_Knife', ico: '🔪' },
+]
+
+let _lastToolTotal = -1
+
+export function renderToolStock() {
+  const el = document.getElementById('tool-panel')
+  if (!el) return
+  if (!G.hqPlaced) { el.style.display = 'none'; return }
+  const inHand: Record<string, number> = {}
+  G.colonists.filter((c) => !c.dead).forEach((c) => {
+    if (c.tool?.type && c.tool.type !== '—' && c.tool.dur > 0) {
+      const k = c.tool.type.replace(/ /g, '_'); inHand[k] = (inHand[k] || 0) + 1
+    }
+    if (c.weapon?.type) {
+      const k = c.weapon.type.replace(/ /g, '_'); inHand[k] = (inHand[k] || 0) + 1
+    }
+  })
+  const cnt = (key: string) => (inHand[key] || 0) + (G.toolStock[key] || 0)
+  const total = [...WOOD_TOOL_LIST, ...STONE_TOOL_LIST].reduce((s, t) => s + cnt(t.key), 0)
+  if (_lastToolTotal >= 0 && total > _lastToolTotal) {
+    el.classList.remove('res-up'); void (el as HTMLElement).offsetWidth; el.classList.add('res-up')
+  }
+  _lastToolTotal = total
+  const span = (list: typeof WOOD_TOOL_LIST) =>
+    list.map((t) => {
+      const n = cnt(t.key)
+      return `<span title="${t.key.replace(/_/g,' ')}" style="color:${n ? 'var(--text)' : 'var(--dim)'}">${t.ico}${n}</span>`
+    }).join('')
+  const wsItem = (G.workshopQueue || []).find((i) => i.shop === 'workshop')
+  const fgItem = (G.workshopQueue || []).find((i) => i.shop === 'forge')
+  const qHtml = [wsItem, fgItem].filter(Boolean).map((i) =>
+    `<span style="color:var(--accent);padding-left:5px;border-left:1px solid var(--border)">${i!.ico}~${Math.ceil(i!.timeLeft / 12)}h</span>`
+  ).join('')
+  el.style.display = 'flex'
+  el.innerHTML =
+    `<span style="color:var(--dim);margin-right:3px;font-size:9px">ДЕР</span>${span(WOOD_TOOL_LIST)}` +
+    `<span style="color:var(--dim);margin:0 3px 0 7px;font-size:9px">КАМ</span>${span(STONE_TOOL_LIST)}` +
+    qHtml
 }
 
 // ── RESOURCES ──

@@ -3,7 +3,7 @@ import { TRAITS, PROF, CRAFTS, LORE, SEASONS, MAP_W, TICK_MS, rnd, pick, isNight
 import type { Colonist } from './types'
 import { refreshTileEl, centerOn } from './map'
 import { posSprite } from './buildings'
-import { addLog, renderLog, renderSidebar, renderResources, renderAssign, showModal, updPauseBtn } from './ui'
+import { addLog, renderLog, renderSidebar, renderResources, renderAssign, renderToolStock, showModal, updPauseBtn } from './ui'
 import { getTarget, doWork, updNight, updHappy, checkMeals, checkHerald, tickConstruction, tickPiles, renderAdvisor } from './colonists'
 import { spawnEnemy, tickCombat, checkFirstRaid, triggerCombatMode } from './combat'
 
@@ -23,11 +23,14 @@ export function tick() {
   if (G.minute >= 60) { G.minute = 0; G.hour++; hourTick() }
   if (G.hour >= 24) { G.hour = 0; G.day++; dayTick() }
   G.colonists.filter((c) => !c.dead).forEach((c) => {
+    if (c.priorityTarget && !c.sleeping && !(c.carryAmt > 0 && c.priorityPile)) {
+      c.targetCol = c.priorityTarget.col; c.targetRow = c.priorityTarget.row
+    }
     if (G.minute % 10 === 0 && !c.sleeping) {
       const t = getTarget(c)
       if (t) {
         const tgt = G.tiles[t.row * MAP_W + t.col]
-        if (tgt && tgt.type !== 'water') { c.targetCol = t.col; c.targetRow = t.row }
+        if (tgt && (tgt.type !== 'water' || c.waterTask)) { c.targetCol = t.col; c.targetRow = t.row }
       }
     }
     const dc = c.targetCol - c.col, dr = c.targetRow - c.row
@@ -43,7 +46,7 @@ export function tick() {
   document.getElementById('hday')!.textContent = String(G.day)
   document.getElementById('hclock')!.textContent = String(G.hour).padStart(2, '0') + ':' + String(G.minute).padStart(2, '0')
   document.getElementById('hdr-season')!.textContent = SEASONS[G.season]
-  updNight(); updHappy(); renderResources(); renderAdvisor()
+  updNight(); updHappy(); renderResources(); renderToolStock(); renderAdvisor()
   if (G.minute % 15 === 0) { renderSidebar(); renderLog() }
   if (G.enemies && G.enemies.length) {
     tickCombat()
@@ -52,6 +55,15 @@ export function tick() {
       if (nearEnemy && co.action !== 'FLEEING') { co.targetCol = G.hqCol; co.targetRow = G.hqRow; co.action = 'FLEEING' }
       else if (!nearEnemy && co.action === 'FLEEING') co.action = 'IDLE'
     })
+  }
+  if (G.hqUpgradeTimer > 0) {
+    G.hqUpgradeTimer--
+    if (G.hqUpgradeTimer === 0) {
+      G.hqUpgradeVisual = true
+      const hqTile = G.tiles[G.hqRow * MAP_W + G.hqCol]
+      if (hqTile) refreshTileEl(hqTile)
+      addLog('🏛 Headquarters reconstruction complete.', 'good')
+    }
   }
   checkFirstRaid()
   if (G.raidPending && G.raidTimer > 0) {
@@ -197,15 +209,9 @@ export function openCraftShop(shopId: string) {
         fn: () => {
           if (!canAfford) { addLog('Not enough for ' + r.name, 'warn'); G.paused = false; updPauseBtn(); return }
           for (const [k, v] of Object.entries(r.cost)) G.res[k as keyof typeof G.res] -= (v as number)
-          if (r.weapon) {
-            const t = G.colonists.find((co) => !co.dead && co.role === 'GUARD' && !co.weapon) || G.colonists.find((co) => !co.dead && !co.weapon)
-            if (t) { t.weapon = { type: r.toolType, dur: r.dur }; addLog(r.ico + ' ' + r.name + ' → ' + t.name, 'good') }
-            else addLog(r.ico + ' ' + r.name + ' stored', 'good')
-          } else {
-            const t = G.colonists.find((co) => !co.dead && co.role === r.role && (!co.tool || co.tool.dur < 50)) || G.colonists.find((co) => !co.dead && co.role === r.role)
-            if (t) { t.tool = { type: r.toolType, dur: r.dur }; addLog(r.ico + ' ' + r.name + ' → ' + t.name, 'good') }
-            else addLog(r.ico + ' ' + r.name + ' stored (no ' + r.role + ')', 'good')
-          }
+          if (!G.workshopQueue) G.workshopQueue = []
+          G.workshopQueue.push({ id: r.id, toolType: r.toolType, ico: r.ico, timeLeft: 72, weapon: r.weapon, dur: r.dur, role: r.role, shop: r.shop })
+          addLog(r.ico + ' ' + r.name + ' queued — 6h to craft', 'normal')
           renderResources(); G.paused = false; updPauseBtn()
         }
       }

@@ -833,6 +833,79 @@ body::after {
   z-index: 4;
 }
 
+/* ENEMIES */
+.enemy-doll {
+  position: absolute;
+  inset: 0;
+}
+.enemy-body {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 0;
+  height: 12px;
+  border: 1px solid #1e1a13;
+  border-radius: 48% 48% 42% 42%/46% 46% 36% 36%;
+  background: var(--cloth);
+}
+.enemy-head {
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 8px;
+  height: 8px;
+  border: 1px solid #1e1a13;
+  border-radius: 50%;
+  background: var(--skin);
+  z-index: 3;
+}
+.enemy-hood {
+  position: absolute;
+  left: 2px;
+  top: 0px;
+  width: 12px;
+  height: 7px;
+  background: var(--hair);
+  border: 1px solid #1e1a13;
+  border-bottom: none;
+  border-radius: 50% 50% 40% 40%;
+  z-index: 4;
+}
+.enemy-mask {
+  position: absolute;
+  left: 3px;
+  top: 4px;
+  width: 10px;
+  height: 4px;
+  background: var(--hair);
+  border: 1px solid #1e1a13;
+  border-top: none;
+  border-radius: 0 0 50% 50%;
+  z-index: 5;
+}
+.enemy-weapon {
+  position: absolute;
+  left: 6px;
+  bottom: 2px;
+  width: 1px;
+  height: 6px;
+  background: #8c8276;
+  border: 1px solid #1e1a13;
+  border-radius: 1px;
+  transform: rotate(25deg);
+  z-index: 6;
+}
+.enemy-mark {
+  position: absolute;
+  left: 6px;
+  bottom: 4px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.55);
+  z-index: 6;
+}
+
 /* NIGHT */
 #night {
   position: absolute;

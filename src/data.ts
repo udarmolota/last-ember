@@ -371,6 +371,13 @@ export const BLDGS = [
   },
 ];
 
+export const DEV_POINTS: Record<string, number> = {
+  tent: 1, campfire: 1, field: 2, storehouse: 2, workshop: 3,
+  house: 3, kitchen: 2, forge: 4, barracks: 4, well: 2, palisade: 1,
+  market: 2, weaver: 2, lumbermill: 2, mine: 2, infirmary: 2,
+  tower: 5, stone_wall: 2, grave: 0,
+}
+
 export const CRAFTS = [
   // ── WORKSHOP (Stonemason) ── stone & wood tools ──
   // lv1: work tools
@@ -419,15 +426,70 @@ export const CRAFTS = [
     role: 'BUILDER',
   },
   {
-    id: 'mallet_wood',
-    name: 'Wood Mallet',
-    ico: '🪵',
+    id: 'mallet_stone',
+    name: 'Stone Mallet',
+    ico: '🪨',
     shop: 'workshop',
     lv: 1,
-    cost: { wood: 4 },
-    toolType: 'Wood Mallet',
-    dur: 50,
+    cost: { stone: 3, wood: 2 },
+    toolType: 'Stone Mallet',
+    dur: 70,
     role: 'STONEMASON',
+  },
+  {
+    id: 'knife_stone',
+    name: 'Stone Knife',
+    ico: '🔪',
+    shop: 'workshop',
+    lv: 1,
+    cost: { stone: 2, wood: 1 },
+    toolType: 'Stone Knife',
+    dur: 65,
+    weapon: true,
+  },
+  {
+    id: 'club_stone',
+    name: 'Stone Club',
+    ico: '🏏',
+    shop: 'workshop',
+    lv: 1,
+    cost: { stone: 3, wood: 2 },
+    toolType: 'Stone Club',
+    dur: 70,
+    weapon: true,
+  },
+  {
+    id: 'tongs_stone',
+    name: 'Stone Tongs',
+    ico: '🔩',
+    shop: 'workshop',
+    lv: 1,
+    cost: { stone: 3, wood: 2 },
+    toolType: 'Stone Tongs',
+    dur: 70,
+    role: 'BLACKSMITH',
+  },
+  {
+    id: 'needle_stone',
+    name: 'Stone Needle',
+    ico: '🧵',
+    shop: 'workshop',
+    lv: 1,
+    cost: { stone: 2, wood: 1 },
+    toolType: 'Stone Needle',
+    dur: 65,
+    role: 'TAILOR',
+  },
+  {
+    id: 'arrow_stone',
+    name: 'Stone Arrow',
+    ico: '🏹',
+    shop: 'workshop',
+    lv: 1,
+    cost: { stone: 2, wood: 1 },
+    toolType: 'Stone Arrow',
+    dur: 65,
+    role: 'HUNTER',
   },
   // lv2: wooden weapons
   {
@@ -553,19 +615,34 @@ export const BCAT_DATA = {
 export const rnd = (a: number, b: number) => Math.floor(Math.random() * (b - a + 1)) + a;
 export const pick = <T>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
 export const isNightTime = () => G.hour < 6 || G.hour >= 21;
-export const PROF_TOOL = {
-  LUMBERJACK: 'Axe',
-  MINER: 'Pickaxe',
-  STONEMASON: 'Hammer',
-  FARMER: 'Hoe',
-  BLACKSMITH: 'Tongs',
-  TAILOR: 'Needle',
-  MEDIC: 'Bandage Kit',
-  COOK: 'Knife',
-  HUNTER: 'Bow',
-  BUILDER: 'Mallet',
+export const PROF_WOOD_TOOL: Record<string, string | null> = {
+  LUMBERJACK: 'Wood Axe',
+  MINER: 'Wood Pick',
+  FARMER: 'Wood Hoe',
+  BUILDER: 'Wood Hammer',
+  STONEMASON: 'Wood Mallet',
+  BLACKSMITH: 'Wood Tongs',
+  TAILOR: 'Wood Needle',
+  MEDIC: 'Kit',
+  COOK: null,
+  HUNTER: 'Wood Bow',
   PORTER: null,
-  GUARD: 'Knife',
+  GUARD: 'Wood Club',
   GATHERER: null,
-};
+}
+export const PROF_STONE_TOOL: Record<string, string | null> = {
+  LUMBERJACK: 'Stone Axe',
+  MINER: 'Stone Pick',
+  FARMER: 'Stone Hoe',
+  BUILDER: 'Stone Hammer',
+  STONEMASON: 'Stone Mallet',
+  BLACKSMITH: 'Stone Tongs',
+  TAILOR: 'Stone Needle',
+  MEDIC: null,
+  COOK: null,
+  HUNTER: 'Stone Arrow',
+  PORTER: null,
+  GUARD: 'Stone Club',
+  GATHERER: null,
+}
 import { G } from './state'

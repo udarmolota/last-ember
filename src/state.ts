@@ -3,7 +3,7 @@ import type { Colonist, Tile, PlacedBuilding, BuildingDef, Enemy, LogEntry, Game
 
 export const G: GameState = {
   day: 1,
-  hour: 6,
+  hour: 8,
   minute: 0,
   season: 0,
   seasonDay: 0,
@@ -20,6 +20,7 @@ export const G: GameState = {
   hqCol: 0,
   hqRow: 0,
   hqLevel: 1,
+  development: 0,
   shelter: 0,
   log: [],
   selectedCol: null,
@@ -30,5 +31,8 @@ export const G: GameState = {
   lastStranger: 0,
   porterPileIdx: 0,
   toolStock: {},
+  workshopQueue: [],
   raidPending: false,
+  hqUpgradeTimer: 0,
+  hqUpgradeVisual: false,
 }

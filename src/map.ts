@@ -129,7 +129,7 @@ export function refreshTileEl(ti: Tile) {
       else if (phase === 'harvest') ico.textContent = ci.harvest
       else ico.textContent = '🟫'
     } else {
-      const bldgIco = bd ? bd.ico : ti.bldg.id === 'hq' ? '🏚' : '🏗'
+      const bldgIco = bd ? bd.ico : ti.bldg.id === 'hq' ? (G.hqLevel > 1 && G.hqUpgradeVisual ? '🏛' : '🏚') : '🏗'
       if (ti.bldg.isMain && ti.bldg.id !== 'campfire') {
         ico.textContent = bldgIco
         ico.style.cssText = `position:absolute;font-size:28px;top:0;left:0;width:${TS*2}px;height:${TS*2}px;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none;line-height:1;`
@@ -314,8 +314,14 @@ export function assignWaterFetch(ti: Tile) {
     ? porter.reduce((a, b) => Math.abs(a.col - ti.col) + Math.abs(a.row - ti.row) < Math.abs(b.col - ti.col) + Math.abs(b.row - ti.row) ? a : b)
     : G.colonists.find((c) => !c.dead && !c.sleeping && c.action === 'IDLE')
   if (!target) { addLog('No one available to fetch water!', 'warn'); return }
-  target.waterTask = { col: ti.col, row: ti.row }
-  target.priorityTarget = { col: ti.col, row: ti.row }
+  const dirs = [[0,-1],[1,0],[0,1],[-1,0],[-1,-1],[1,-1],[-1,1],[1,1]]
+  let wt = { col: ti.col, row: ti.row }
+  for (const [dc, dr] of dirs) {
+    const adj = G.tiles.find((t) => t.col === ti.col + dc && t.row === ti.row + dr && t.type !== 'water')
+    if (adj) { wt = { col: adj.col, row: adj.row }; break }
+  }
+  target.waterTask = { col: wt.col, row: wt.row }
+  target.priorityTarget = { col: wt.col, row: wt.row }
   markTileTask(ti)
   addLog(target.name + ' → fetching water', 'normal')
 }
@@ -344,6 +350,9 @@ export function assignPriorityTask(role: string, ti: Tile) {
     return da < db ? a : b
   })
   nearest.priorityTarget = { col: ti.col, row: ti.row, role }
+  if (role === 'PORTER' && ti.resPile && ti.resPile.amount > 0) {
+    nearest.priorityPile = { col: ti.col, row: ti.row, res: ti.resPile.type }
+  }
   addLog(nearest.name + ' → ' + role + ' priority task', 'good')
 }
 

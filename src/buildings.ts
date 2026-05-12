@@ -68,7 +68,7 @@ export function finishPlace(bd: BuildingDef, ti: Tile, crop: string | null) {
       refreshTileEl(t)
     })
   } else {
-    ti.bldg = { ...bldgData }
+    ti.bldg = { ...bldgData, isMain: true }
     refreshTileEl(ti)
   }
 
@@ -107,6 +107,6 @@ export function refreshSprites() {
 export function posSprite(c: Colonist) {
   const sp = document.getElementById('sp-' + c.id); if (!sp) return
   const ox = (c.id % 3) * 2 - 2, oy = Math.floor(c.id / 3) * 2 - 2
-  sp.style.left = c.col * TS + TS / 2 - 8 + ox + 'px'
-  sp.style.top = c.row * TS + TS / 2 - 16 + oy + 'px'
+  sp.style.left = c.col * TS + TS * 1.5 - 8 + ox + 'px'
+  sp.style.top = c.row * TS + TS - 16 + oy + 'px'
 }

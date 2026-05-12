@@ -28,8 +28,15 @@ export function spawnEnemy(type: string): Enemy {
   G.enemies.push(enemy)
   const sp = document.createElement('div')
   sp.id = 'enemy-' + enemy.id
-  sp.style.cssText = `position:absolute;width:12px;height:12px;border-radius:2px;border:1px solid #8a1a08;background:${enemy.color};z-index:25;display:flex;align-items:center;justify-content:center;font-size:7px;box-shadow:0 1px 4px rgba(0,0,0,0.5);transition:left 0.4s,top 0.4s;`
-  sp.textContent = enemy.ico
+  sp.style.cssText = `position:absolute;width:16px;height:20px;z-index:25;cursor:pointer;transition:left 0.4s,top 0.4s;`
+  sp.innerHTML = `<div class="enemy-doll" style="--cloth:#5a1a1a;--skin:#e0c8a8;--hair:#3a2a20">
+    <div class="enemy-head"></div>
+    <div class="enemy-hood"></div>
+    <div class="enemy-mask"></div>
+    <div class="enemy-body"></div>
+    <div class="enemy-weapon"></div>
+    <div class="enemy-mark"></div>
+  </div>`
   document.getElementById('mapcanvas')!.appendChild(sp)
   posEnemy(enemy)
   return enemy
@@ -39,7 +46,7 @@ function posEnemy(e: Enemy) {
   const sp = document.getElementById('enemy-' + e.id)
   if (!sp) return
   sp.style.left = e.col * TS + TS / 2 - 8 + 'px'
-  sp.style.top = e.row * TS + TS / 2 - 8 + 'px'
+  sp.style.top = e.row * TS + TS / 2 - 16 + 'px'
 }
 
 function removeEnemy(e: Enemy) {
