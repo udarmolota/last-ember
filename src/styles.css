@@ -592,11 +592,12 @@ body::after {
 .tlbl {
   position: absolute;
   bottom: 1px;
-  right: 2px;
-  font-size: 7px;
-  color: rgba(0, 0, 0, 0.4);
+  right: 1px;
+  font-size: 6px;
+  color: rgba(0,0,0,0.5);
   line-height: 1;
   pointer-events: none;
+  z-index: 10;
 }
 .rpile {
   position: absolute;
@@ -1301,7 +1302,21 @@ body::after {
   display: block;
 }
 .rpile {
-  animation: pulsepile 1.4s ease-in-out infinite;
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  font-size: 7px;
+  background: rgba(255,255,255,0.85);
+  padding: 1px 2px;
+  border-radius: 2px;
+  color: #1a1810;
+  line-height: 1;
+  pointer-events: none;
+  border: 1px solid rgba(0,0,0,0.15);
+  z-index: 10;
+  overflow: hidden;
+  max-width: 17px;
+  white-space: nowrap;
 }
 @keyframes pulsepile {
   0%,

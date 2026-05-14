@@ -19,7 +19,10 @@ export function getTarget(c: Colonist) {
   if (c.priorityTarget) {
     const pt = c.priorityTarget
     const dist = Math.sqrt(Math.pow(c.col - pt.col, 2) + Math.pow(c.row - pt.row, 2))
-    if (dist < 0.9) { c.priorityTarget = null } else return pt
+    if (dist < 0.9) {
+      c.priorityTarget = null
+      // _pendingWork остаётся — doWork выполнит один тик
+    } else return pt
   }
   switch (c.role) {
     case 'FARMER': return bof('field') || ftile('soil') || hq
@@ -56,11 +59,82 @@ export function getTarget(c: Colonist) {
   }
 }
 
+// Выполняет один тик работы по приоритетному заданию
+function executePriorityWork(c: Colonist, role: string) {
+  const tr = TRAITS.find((t) => t.id === c.trait)!
+  const hasTool = c.tool && c.tool.type && c.tool.type !== '—' && c.tool.dur > 0
+  const chance = 0.08 * tr.speed * (hasTool ? 1.0 : 0.3)
+  const ti = G.tiles.find((t) => t.col === Math.round(c.col) && t.row === Math.round(c.row))
+
+  switch (role) {
+    case 'LUMBERJACK': {
+      if (ti && ti.type === 'forest' && ti.resAmt > 0 && Math.random() < chance) {
+        const a = Math.min(2, ti.resAmt); ti.resAmt -= a
+        addPile(ti, 'wood', a); refreshTileEl(ti)
+        c.action = 'CHOPPING'
+        addLog(c.name + ' chopped wood 🪵', 'good')
+      }
+      break
+    }
+    case 'MINER': {
+      if (ti && (ti.type === 'ore' || ti.type === 'rock') && ti.resAmt > 0 && Math.random() < chance * 0.7) {
+        const a = Math.min(2, ti.resAmt); ti.resAmt -= a
+        const hasPorter = G.colonists.some((x) => !x.dead && x.role === 'PORTER')
+        const hasStore = G.buildings.some((b) => b.id === 'storehouse' || b.id === 'hq')
+        if (hasPorter && hasStore) addPile(ti, 'stone', a)
+        else G.res.stone = (G.res.stone || 0) + a
+        refreshTileEl(ti); c.action = 'MINING'
+        addLog(c.name + ' mined stone 🪨', 'good')
+      }
+      break
+    }
+    case 'GATHERER': {
+      if (ti && (ti.res === 'berries' || ti.res === 'mushrooms') && ti.resAmt > 0 && Math.random() < 0.12) {
+        const a = Math.min(3, ti.resAmt); ti.resAmt -= a
+        addPile(ti, ti.res!, a); refreshTileEl(ti)
+        c.action = 'GATHERING'
+        addLog(c.name + ' gathered ' + ti.res + ' 🧺', 'good')
+      }
+      break
+    }
+    case 'PORTER': {
+      if (ti && ti.resPile && ti.resPile.amount > 0) {
+        const take = Math.min(10, ti.resPile.amount)
+        ti.resPile.amount -= take
+        c.carryType = ti.resPile.type; c.carryAmt = take
+        if (ti.resPile.amount <= 0) ti.resPile = null
+        refreshTileEl(ti)
+        const store = G.buildings.find((b) => b.id === 'storehouse' || b.id === 'hq')
+        if (store) { c.targetCol = store.col; c.targetRow = store.row }
+        c.action = 'CARRYING'
+        addLog(c.name + ' picked up ' + take + ' ' + c.carryType, 'good')
+      }
+      break
+    }
+    default: break
+  }
+}
+
 export function doWork(c: Colonist) {
   if (c.sleeping || c.dead) return
+
+  // Приоритетное задание выполнено — один рабочий тик
+  if (c._pendingWork) {
+    const pw = c._pendingWork
+    c._pendingWork = null
+    c.mood = Math.max(0, c.mood - (isNightTime() ? 1.5 : 0))
+    executePriorityWork(c, pw.role)
+    // Ночью возвращаемся спать после выполнения
+    if (isNightTime()) {
+      c.sleeping = true
+      c.shelterAssigned = null
+    }
+    return
+  }
+
   if (isNightTime()) {
     if (c.priorityTarget) {
-      // работает но настроение падает
+      // Ещё идёт к цели ночью — будим, портим настроение
       c.sleeping = false
       c.mood = Math.max(0, c.mood - 0.5)
     } else {
@@ -68,18 +142,22 @@ export function doWork(c: Colonist) {
       return
     }
   }
+
   if (c.waterTask) {
     const dist = Math.hypot(c.col - c.waterTask.col, c.row - c.waterTask.row)
     if (dist < 1.5) {
       G.res.water += 20; addLog(c.name + ' fetched water +20💧', 'good')
       c.waterTask = null; c.priorityTarget = null
+      if (isNightTime()) { c.sleeping = true; c.shelterAssigned = null }
     } else {
       c.targetCol = c.waterTask.col; c.targetRow = c.waterTask.row
       c.action = 'FETCHING WATER'
     }
     return
   }
+
   if (c.priorityTarget) { c.action = 'GOING'; return }
+
   if (!c.tool || c.tool.type === '—' || c.tool.dur <= 0) {
     const depots = G.buildings.filter((b) => (b.id === 'storehouse' || b.id === 'hq' || b.id === 'workshop' || b.id === 'forge') && !b.paused)
     for (const d of depots) {
@@ -290,8 +368,8 @@ export function updNight() {
   ni.className = isNight ? 'ni' : tw ? 'tw' : ''
   document.getElementById('nightLabel')!.classList.toggle('show', isNight)
   G.colonists.filter((c) => !c.dead).forEach((c) => {
-    c.sleeping = isNight && !c.priorityTarget
-    if (!c.sleeping && isNight) return // уже бодрствует по заданию — не трогаем
+    c.sleeping = isNight && !c.priorityTarget && !c._pendingWork
+    if (!c.sleeping && isNight) return // бодрствует по заданию — не трогаем
     if (c.sleeping) {
       c.action = 'SLEEPING'
       if (!c.shelterAssigned) {
@@ -545,19 +623,15 @@ export function tryEquipTool(col: Colonist) {
   const stoneType = PROF_STONE_TOOL[col.role]
   const woodType = PROF_WOOD_TOOL[col.role]
   if (!stoneType && !woodType) { col.tool = { type: '—', dur: 100 }; return }
-  // Already has correct tool
   if (col.tool?.type && col.tool.type !== '—' && col.tool.dur > 0) {
     if (col.tool.type === stoneType || col.tool.type === woodType) return
-    // Has a different tool — return stone/copper ones to stock, discard wood
     if (!col.tool.type.startsWith('Wood') && col.tool.type !== 'Kit') returnToolToStock(col.tool)
     col.tool = { type: '—', dur: 0 }
   }
-  // Try stone first (player must have crafted it)
   if (stoneType) {
     const t = getToolFromStock(stoneType)
     if (t) { col.tool = t; addLog(col.name + ' equipped ' + t.type, 'normal'); return }
   }
-  // Try wood
   if (woodType) {
     const t = getToolFromStock(woodType)
     if (t) { col.tool = t; addLog(col.name + ' equipped ' + t.type, 'normal'); return }

@@ -38,6 +38,18 @@ export function tick() {
     const spd = 0.3
     if (dist > spd) { c.col += (dc / dist) * spd; c.row += (dr / dist) * spd }
     else { c.col = c.targetCol; c.row = c.targetRow }
+
+    // separation — отталкиваемся от других колонистов
+    G.colonists.filter((o) => !o.dead && o.id !== c.id).forEach((o) => {
+      const dx = c.col - o.col, dy = c.row - o.row
+      const d = Math.sqrt(dx * dx + dy * dy)
+      if (d < 0.8 && d > 0) {
+        const push = (0.8 - d) * 0.15
+        c.col += (dx / d) * push
+        c.row += (dy / d) * push
+      }
+    })
+
     posSprite(c)
   })
   if (G.minute % 5 === 0) G.colonists.filter((c) => !c.dead).forEach(doWork)
@@ -145,6 +157,20 @@ export function hourTick() {
         }
       }])
     }
+  }
+  // проверка конца игры
+  if (G.colonists.filter((c) => !c.dead).length === 0 && G.colonists.length > 0) {
+    G.paused = true
+    showModal(
+      'COLONY LOST',
+      'Your last survivor has fallen.\nThe ember goes dark.\n\nThe wasteland reclaims what was yours.',
+      [{
+        label: 'START OVER',
+        cls: 'danger',
+        fn: () => { location.reload() }
+      }],
+      true
+    )
   }
 }
 

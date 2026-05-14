@@ -84,6 +84,7 @@ export interface Colonist {
   _warnedStarving?: boolean
   _warnedDehydrated?: boolean
   deathWarned?: boolean
+  _pendingWork?: { role: string; col: number; row: number } | null
 }
 
 export interface PlacedBuilding {

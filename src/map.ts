@@ -352,14 +352,17 @@ export function markTileTask(ti: Tile) {
 
 export function assignPriorityTask(role: string, ti: Tile) {
   const candidates = G.colonists.filter((c) => !c.dead && c.role === role)
+  const assignTo = (target: any) => {
+    target.priorityTarget = { col: ti.col, row: ti.row, role }
+    target._pendingWork = { role, col: ti.col, row: ti.row }
+    target.sleeping = false
+    target.shelterAssigned = null
+    addLog(target.name + ' → ' + role + ' priority task' + (isNightTime() ? ' (night shift 😴)' : ''), 'good')
+  }
   if (!candidates.length) {
     const idle = G.colonists.find((c) => !c.dead && c.action !== 'FLEEING')
-    if (idle) {
-      idle.priorityTarget = { col: ti.col, row: ti.row, role }
-      idle.sleeping = false
-      idle.shelterAssigned = null
-      addLog(idle.name + ' → ' + role + ' task assigned (night shift 😴)', 'good')
-    } else addLog('No ' + role + ' available!', 'warn')
+    if (idle) assignTo(idle)
+    else addLog('No ' + role + ' available!', 'warn')
     return
   }
   const nearest = candidates.reduce((a, b) => {
@@ -367,10 +370,7 @@ export function assignPriorityTask(role: string, ti: Tile) {
     const db = Math.abs(b.col - ti.col) + Math.abs(b.row - ti.row)
     return da < db ? a : b
   })
-  nearest.priorityTarget = { col: ti.col, row: ti.row, role }
-  nearest.sleeping = false
-  nearest.shelterAssigned = null
-  addLog(nearest.name + ' → ' + role + ' priority task' + (nearest.sleeping ? ' (night shift 😴)' : ''), 'good')
+  assignTo(nearest)
 }
 
 export function placeHQ(ti: Tile) {
