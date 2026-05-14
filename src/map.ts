@@ -1,5 +1,5 @@
 import { G } from './state'
-import { BLDGS, MAP_W, MAP_H, TS, rnd, pick } from './data'
+import { BLDGS, MAP_W, MAP_H, TS, rnd, pick, isNightTime } from './data'
 import type { Tile } from './types'
 import { refreshSprites, placeBuilding } from './buildings'
 import { addLog, renderLog, updPauseBtn } from './ui'
@@ -131,8 +131,19 @@ export function refreshTileEl(ti: Tile) {
     } else {
       const bldgIco = bd ? bd.ico : ti.bldg.id === 'hq' ? (G.hqLevel > 1 && G.hqUpgradeVisual ? '🏛' : '🏚') : '🏗'
       if (ti.bldg.isMain && ti.bldg.id !== 'campfire') {
-        ico.textContent = bldgIco
-        ico.style.cssText = `position:absolute;font-size:28px;top:0;left:0;width:${TS*2}px;height:${TS*2}px;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none;line-height:1;`
+        // workshop — PNG спрайт
+        if (ti.bldg.id === 'workshop') {
+          let src = '/sprites/workshop_complete.png'
+          if (ti.bldg.buildTime > 0) {
+            src = ti.bldg.buildTime > ti.bldg.totalTime * 0.5
+              ? '/sprites/workshop_foundation.png'
+              : '/sprites/workshop_under_construction.png'
+          }
+          ico.style.cssText = `position:absolute;top:0;left:0;width:${TS*2}px;height:${TS*2}px;z-index:3;pointer-events:none;background:url('${src}') center/contain no-repeat;`
+        } else {
+          ico.textContent = bldgIco
+          ico.style.cssText = `position:absolute;font-size:28px;top:0;left:0;width:${TS*2}px;height:${TS*2}px;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none;line-height:1;`
+        }
       } else {
         ico.textContent = bldgIco
       }
@@ -322,8 +333,11 @@ export function assignWaterFetch(ti: Tile) {
   }
   target.waterTask = { col: wt.col, row: wt.row }
   target.priorityTarget = { col: wt.col, row: wt.row }
+  // будит колониста если ночь
+  target.sleeping = false
+  target.shelterAssigned = null
   markTileTask(ti)
-  addLog(target.name + ' → fetching water', 'normal')
+  addLog(target.name + ' → fetching water' + (isNightTime() ? ' (night shift 😴)' : ''), 'normal')
 }
 
 export function markTileTask(ti: Tile) {
@@ -337,11 +351,15 @@ export function markTileTask(ti: Tile) {
 }
 
 export function assignPriorityTask(role: string, ti: Tile) {
-  const candidates = G.colonists.filter((c) => !c.dead && !c.sleeping && c.role === role)
+  const candidates = G.colonists.filter((c) => !c.dead && c.role === role)
   if (!candidates.length) {
-    const idle = G.colonists.find((c) => !c.dead && !c.sleeping && c.action === 'IDLE')
-    if (idle) { idle.priorityTarget = { col: ti.col, row: ti.row, role }; addLog(idle.name + ' → ' + role + ' task assigned', 'good') }
-    else addLog('No ' + role + ' available!', 'warn')
+    const idle = G.colonists.find((c) => !c.dead && c.action !== 'FLEEING')
+    if (idle) {
+      idle.priorityTarget = { col: ti.col, row: ti.row, role }
+      idle.sleeping = false
+      idle.shelterAssigned = null
+      addLog(idle.name + ' → ' + role + ' task assigned (night shift 😴)', 'good')
+    } else addLog('No ' + role + ' available!', 'warn')
     return
   }
   const nearest = candidates.reduce((a, b) => {
@@ -350,10 +368,9 @@ export function assignPriorityTask(role: string, ti: Tile) {
     return da < db ? a : b
   })
   nearest.priorityTarget = { col: ti.col, row: ti.row, role }
-  if (role === 'PORTER' && ti.resPile && ti.resPile.amount > 0) {
-    nearest.priorityPile = { col: ti.col, row: ti.row, res: ti.resPile.type }
-  }
-  addLog(nearest.name + ' → ' + role + ' priority task', 'good')
+  nearest.sleeping = false
+  nearest.shelterAssigned = null
+  addLog(nearest.name + ' → ' + role + ' priority task' + (nearest.sleeping ? ' (night shift 😴)' : ''), 'good')
 }
 
 export function placeHQ(ti: Tile) {

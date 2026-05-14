@@ -85,10 +85,38 @@ export function finishPlace(bd: BuildingDef, ti: Tile, crop: string | null) {
 }
 
 // ── SPRITES ──
+function colonistStatusIcon(c: Colonist): string {
+  if (c.sick) return '✚'
+  if (c.thirst > 65) return '💧'
+  if (c.hunger > 65) return '🍖'
+  if (c.sleeping) return 'zZ'
+  if (c.role === 'GUARD') return '⚔'
+  return ''
+}
+
 export function dollHTML(c: Colonist) {
-  if (!c.visual) c.visual = { skin: pick(SKINS), hair: pick(HAIRS), hairStyle: pick(HAIR_STYLES), body: c.color }
+  if (!c.visual) {
+    c.visual = {
+      skin: pick(SKINS),
+      hair: pick(HAIRS),
+      hairStyle: pick(HAIR_STYLES),
+      body: c.color,
+    }
+  }
+
   const v = c.visual
-  return `<div class="doll" style="--col:${v.body || c.color};--skin:${v.skin};--hair:${v.hair}"><div class="doll-body"></div><div class="doll-head"></div><div class="doll-hair ${v.hairStyle || 'cap'}"></div><div class="doll-face"></div><div class="doll-mark"></div></div>`
+  const status = colonistStatusIcon(c)
+
+  return `
+    <div class="doll" style="--col:${v.body || c.color};--skin:${v.skin};--hair:${v.hair}">
+      <div class="doll-body"></div>
+      <div class="doll-head"></div>
+      <div class="doll-hair ${v.hairStyle || 'cap'}"></div>
+      <div class="doll-face"></div>
+      <div class="doll-mark"></div>
+      ${status ? `<div class="status-icon">${status}</div>` : ''}
+    </div>
+  `
 }
 
 export function refreshSprites() {

@@ -15,7 +15,7 @@ export function getTarget(c: Colonist) {
   }
   const ftile = (type: string, needRes = false) =>
     G.tiles.find((t) => t.type === type && (!needRes || t.resAmt > 0))
-  if (c.sleeping) return hq
+  if (c.sleeping && !c.priorityTarget) return hq
   if (c.priorityTarget) {
     const pt = c.priorityTarget
     const dist = Math.sqrt(Math.pow(c.col - pt.col, 2) + Math.pow(c.row - pt.row, 2))
@@ -58,7 +58,16 @@ export function getTarget(c: Colonist) {
 
 export function doWork(c: Colonist) {
   if (c.sleeping || c.dead) return
-  if (isNightTime()) { c.action = 'SLEEPING'; return }
+  if (isNightTime()) {
+    if (c.priorityTarget) {
+      // работает но настроение падает
+      c.sleeping = false
+      c.mood = Math.max(0, c.mood - 0.5)
+    } else {
+      c.action = 'SLEEPING'
+      return
+    }
+  }
   if (c.waterTask) {
     const dist = Math.hypot(c.col - c.waterTask.col, c.row - c.waterTask.row)
     if (dist < 1.5) {
@@ -281,7 +290,8 @@ export function updNight() {
   ni.className = isNight ? 'ni' : tw ? 'tw' : ''
   document.getElementById('nightLabel')!.classList.toggle('show', isNight)
   G.colonists.filter((c) => !c.dead).forEach((c) => {
-    c.sleeping = isNight
+    c.sleeping = isNight && !c.priorityTarget
+    if (!c.sleeping && isNight) return // уже бодрствует по заданию — не трогаем
     if (c.sleeping) {
       c.action = 'SLEEPING'
       if (!c.shelterAssigned) {
