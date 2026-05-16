@@ -1,13 +1,20 @@
 import { G } from './state'
 import { MAP_W, MAP_H, TS, rnd, pick } from './data'
 import type { Enemy, Colonist } from './types'
-import { addLog } from './ui'
-import { updPauseBtn } from './ui'
+import { addLog, showModal, updPauseBtn } from './ui'
+import { refreshTileEl } from './map'
 import { onDeath } from './game'
 
 const ENEMY_TYPES = [
   { id: 'bandit', name: 'Bandit', ico: '💀', hp: 40, maxHp: 40, combatSkill: 10, weapon: 'Stone Knife', damage: 8, color: '#8a1a08', speed: 0.08 },
 ]
+
+const WEAPON_DAMAGE: Record<string, number> = {
+  'Wood Knife': 2, 'Stone Knife': 5, 'Metal Knife': 7, 'Copper Knife': 8,
+  'Wood Club': 4, 'Stone Club': 6, 'Metal Club': 8,
+  'Wood Shield': 3, 'Copper Shield': 5,
+  'Copper Sword': 12,
+}
 
 export function spawnEnemy(type: string): Enemy {
   const def = ENEMY_TYPES.find((e) => e.id === type) || ENEMY_TYPES[0]
@@ -37,9 +44,31 @@ export function spawnEnemy(type: string): Enemy {
     <div class="enemy-weapon"></div>
     <div class="enemy-mark"></div>
   </div>`
+  sp.addEventListener('click', () => onEnemyClick(enemy))
   document.getElementById('mapcanvas')!.appendChild(sp)
   posEnemy(enemy)
   return enemy
+}
+
+function onEnemyClick(enemy: Enemy) {
+  if (enemy.dead) return
+  showModal('RAIDER SPOTTED', enemy.ico + ' ' + enemy.name + '\nHP: ' + enemy.hp + ' / ' + enemy.maxHp, [
+    {
+      label: '⚔ Attack!', cls: 'danger', fn: () => {
+        const guard = G.colonists
+          .filter((c) => !c.dead && c.role === 'GUARD')
+          .sort((a, b) => Math.hypot(a.col - enemy.col, a.row - enemy.row) - Math.hypot(b.col - enemy.col, b.row - enemy.row))[0]
+        if (guard) {
+          guard.priorityTarget = { col: Math.round(enemy.col), row: Math.round(enemy.row) }
+          addLog(guard.name + ' charging raider!', 'good')
+        } else {
+          addLog('No guards available!', 'warn')
+        }
+        G.paused = false; updPauseBtn()
+      }
+    },
+    { label: 'CLOSE', cls: '', fn: () => { G.paused = false; updPauseBtn() } }
+  ])
 }
 
 function posEnemy(e: Enemy) {
@@ -71,9 +100,15 @@ function punchAnim(spriteId: string) {
 
 export function triggerCombatMode() {
   G.combatMode = true; G.paused = true; updPauseBtn()
+  const shelterTiles = G.tiles.filter((t) => t.bldg && (t.bldg.id === 'tent' || t.bldg.id === 'house') && t.bldg.buildTime <= 0 && t.bldg.isMain)
   G.colonists.filter((c) => !c.dead && c.role !== 'GUARD').forEach((c) => {
-    const nearEnemy = G.enemies!.some((e) => Math.sqrt(Math.pow(c.col - e.col, 2) + Math.pow(c.row - e.row, 2)) < 6)
-    if (nearEnemy) { c.targetCol = G.hqCol; c.targetRow = G.hqRow; c.action = 'FLEEING' }
+    c.action = 'FLEEING'
+    if (shelterTiles.length) {
+      const nearest = shelterTiles.reduce((a, b) => Math.hypot(a.col - c.col, a.row - c.row) < Math.hypot(b.col - c.col, b.row - c.row) ? a : b)
+      c.targetCol = nearest.col; c.targetRow = nearest.row
+    } else {
+      c.targetCol = G.hqCol; c.targetRow = G.hqRow
+    }
   })
 }
 
@@ -85,6 +120,41 @@ export function tickCombat() {
   const alive = G.colonists.filter((c) => !c.dead)
   G.enemies!.forEach((enemy) => {
     if (enemy.dead) return
+
+    // Сканируем palisade/gate в радиусе 8 тайлов
+    const walls = G.tiles.filter((t) =>
+      t.bldg && (t.bldg.id === 'palisade' || t.bldg.id === 'gate') &&
+      t.bldg.buildTime <= 0 && (t.bldg.hp || 0) > 0 &&
+      Math.hypot(t.col - enemy.col, t.row - enemy.row) < 8
+    )
+    const nearestWall = walls.length
+      ? walls.reduce((a, b) => Math.hypot(a.col - enemy.col, a.row - enemy.row) < Math.hypot(b.col - enemy.col, b.row - enemy.row) ? a : b)
+      : null
+
+    if (nearestWall) {
+      const wd = Math.hypot(nearestWall.col - enemy.col, nearestWall.row - enemy.row)
+      if (wd > 0.9) {
+        const dc = nearestWall.col - enemy.col, dr = nearestWall.row - enemy.row
+        enemy.col += (dc / wd) * enemy.speed; enemy.row += (dr / wd) * enemy.speed
+        posEnemy(enemy)
+      } else {
+        enemy.attackTimer = (enemy.attackTimer || 0) + 1
+        if (enemy.attackTimer >= 20) {
+          enemy.attackTimer = 0
+          nearestWall.bldg!.hp = (nearestWall.bldg!.hp || 0) - 5
+          punchAnim('enemy-' + enemy.id)
+          if (nearestWall.bldg!.hp <= 0) {
+            addLog('💥 Palisade destroyed by raiders!', 'danger')
+            nearestWall.bldg = null
+            refreshTileEl(nearestWall)
+          } else {
+            addLog('🟫 Raiders attack the palisade! (HP: ' + nearestWall.bldg!.hp + ')', 'warn')
+          }
+        }
+      }
+      return
+    }
+
     const guards = alive.filter((c) => c.role === 'GUARD')
     const target: any = guards.length
       ? guards.reduce((a, b) => Math.hypot(a.col - enemy.col, a.row - enemy.row) < Math.hypot(b.col - enemy.col, b.row - enemy.row) ? a : b)
@@ -110,17 +180,21 @@ export function tickCombat() {
       }
     }
   })
+  const hasBarracks = G.buildings.some((b) => b.id === 'barracks' && !b.paused)
   alive.filter((c) => c.role === 'GUARD').forEach((guard) => {
     const nearEnemy = G.enemies!.find((e) => !e.dead && Math.hypot(guard.col - e.col, guard.row - e.row) < 1.5)
     if (nearEnemy) {
       guard.targetCol = nearEnemy.col; guard.targetRow = nearEnemy.row; guard.action = 'FIGHTING'
       guard.attackTimer = (guard.attackTimer || 0) + 1
-      if (guard.attackTimer >= 18) {
+      const cooldown = hasBarracks ? 15 : 18
+      if (guard.attackTimer >= cooldown) {
         guard.attackTimer = 0
-        const dmg = calcDamage({ combatSkill: guard.combatSkill || 0, damage: 10 + (guard.weapon ? 5 : 0) }, nearEnemy)
+        const weaponBonus = guard.weapon ? (WEAPON_DAMAGE[guard.weapon.type] ?? 3) : 0
+        const dmg = calcDamage({ combatSkill: guard.combatSkill || 0, damage: 10 + weaponBonus }, nearEnemy)
         nearEnemy.hp -= dmg
         punchAnim('sp-' + guard.id); punchAnim('enemy-' + nearEnemy.id)
         addLog('⚔ ' + guard.name + ' hit raider for ' + dmg, nearEnemy.hp <= 10 ? 'good' : 'normal')
+        guard.combatSkill = Math.min(100, (guard.combatSkill || 0) + (hasBarracks ? 2 : 1))
         if (nearEnemy.hp <= 0) { addLog('Raider defeated!', 'good'); removeEnemy(nearEnemy) }
       }
     } else {

@@ -132,13 +132,13 @@ export function refreshTileEl(ti: Tile) {
       const bldgIco = bd ? bd.ico : ti.bldg.id === 'hq' ? (G.hqLevel > 1 && G.hqUpgradeVisual ? '🏛' : '🏚') : '🏗'
       if (ti.bldg.isMain && ti.bldg.id !== 'campfire') {
         // workshop — PNG спрайт
-        if (ti.bldg.id === 'workshop') {
-          let src = '/sprites/workshop_complete.png'
-          if (ti.bldg.buildTime > 0) {
-            src = ti.bldg.buildTime > ti.bldg.totalTime * 0.5
-              ? '/sprites/workshop_foundation.png'
-              : '/sprites/workshop_under_construction.png'
-          }
+        if (ti.bldg.id === 'workshop' || ti.bldg.id === 'barracks' || ti.bldg.id === 'tent' || ti.bldg.id === 'forge' || ti.bldg.id === 'storehouse') {
+          let src = `/sprites/${ti.bldg.id}.png`
+          //if (ti.bldg.buildTime > 0) {
+          //  src = ti.bldg.buildTime > ti.bldg.totalTime * 0.5
+          //    ? `/sprites/${ti.bldg.id}_foundation.png`
+          //    : `/sprites/${ti.bldg.id}_under_construction.png`
+          //}
           ico.style.cssText = `position:absolute;top:0;left:0;width:${TS*2}px;height:${TS*2}px;z-index:3;pointer-events:none;background:url('${src}') center/contain no-repeat;`
         } else {
           ico.textContent = bldgIco
@@ -259,8 +259,11 @@ export function onTileClick(ti: Tile) {
   // если кликнули на вторичный тайл — показываем инфо главного
   if (ti.bldg?.mainCol !== undefined) {
     const main = G.tiles[ti.bldg.mainRow! * MAP_W + ti.bldg.mainCol]
-    if (main) { showTilePop(main); return }
+    if (main) { onTileClick(main); return }
   }
+  // готовый workshop/forge — открываем крафт сразу, без промежуточной плашки
+  if (ti.bldg?.id === 'workshop' && ti.bldg.buildTime <= 0) { openWorkshop(); return }
+  if (ti.bldg?.id === 'forge' && ti.bldg.buildTime <= 0) { openCraftShop('forge'); return }
   showTilePop(ti)
 }
 

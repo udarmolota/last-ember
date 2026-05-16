@@ -316,6 +316,15 @@ export const BLDGS = [
     time: 120,
   },
   {
+    id: 'gate',
+    lv: 2,
+    cat: 'DEFENSE',
+    ico: '🚪',
+    name: 'GATE',
+    cost: { wood: 12 },
+    time: 120,
+  },
+  {
     id: 'market',
     lv: 2,
     cat: 'TRADE',
@@ -373,7 +382,7 @@ export const BLDGS = [
 
 export const DEV_POINTS: Record<string, number> = {
   tent: 1, campfire: 1, field: 2, storehouse: 2, workshop: 3,
-  house: 3, kitchen: 2, forge: 4, barracks: 4, well: 2, palisade: 1,
+  house: 3, kitchen: 2, forge: 4, barracks: 4, well: 2, palisade: 1, gate: 1,
   market: 2, weaver: 2, lumbermill: 2, mine: 2, infirmary: 2,
   tower: 5, stone_wall: 2, grave: 0,
 }
@@ -514,8 +523,18 @@ export const CRAFTS = [
     dur: 60,
     weapon: true,
   },
-  // ── FORGE (Blacksmith) ── copper & iron tools ──
-  // lv1: copper work tools
+  // ── FORGE (Blacksmith) ── metal & copper tools ──
+  // lv1: metal work tools (from ore)
+  { id: 'axe_metal',    name: 'Metal Axe',      ico: '🪓',  shop: 'forge', lv: 1, cost: { metal: 5, wood: 2 }, toolType: 'Metal Axe',    dur: 90, role: 'LUMBERJACK' },
+  { id: 'pick_metal',   name: 'Metal Pickaxe',  ico: '⛏️',  shop: 'forge', lv: 1, cost: { metal: 5, wood: 2 }, toolType: 'Metal Pick',   dur: 90, role: 'MINER' },
+  { id: 'hoe_metal',    name: 'Metal Hoe',      ico: '🌱',  shop: 'forge', lv: 1, cost: { metal: 4, wood: 2 }, toolType: 'Metal Hoe',    dur: 90, role: 'FARMER' },
+  { id: 'hammer_metal', name: 'Metal Hammer',   ico: '🔨',  shop: 'forge', lv: 1, cost: { metal: 5, wood: 3 }, toolType: 'Metal Hammer', dur: 90, role: 'BUILDER' },
+  { id: 'mallet_metal', name: 'Metal Mallet',   ico: '🪨',  shop: 'forge', lv: 1, cost: { metal: 5, wood: 2 }, toolType: 'Metal Mallet', dur: 90, role: 'STONEMASON' },
+  { id: 'tongs_metal',  name: 'Metal Tongs',    ico: '🔩',  shop: 'forge', lv: 1, cost: { metal: 4, wood: 2 }, toolType: 'Metal Tongs',  dur: 90, role: 'BLACKSMITH' },
+  { id: 'needle_metal', name: 'Metal Needle',   ico: '🧵',  shop: 'forge', lv: 1, cost: { metal: 3, wood: 2 }, toolType: 'Metal Needle', dur: 90, role: 'TAILOR' },
+  { id: 'arrow_metal',  name: 'Metal Arrow',    ico: '🏹',  shop: 'forge', lv: 1, cost: { metal: 3, wood: 3 }, toolType: 'Metal Arrow',  dur: 90, role: 'HUNTER' },
+  { id: 'knife_metal',  name: 'Metal Knife',    ico: '🔪',  shop: 'forge', lv: 1, cost: { metal: 4, wood: 2 }, toolType: 'Metal Knife',  dur: 85, weapon: true },
+  // lv2: copper work tools
   {
     id: 'axe_copper',
     name: 'Copper Axe',

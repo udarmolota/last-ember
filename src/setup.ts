@@ -1,5 +1,5 @@
 import { SUPPLIES, TRAITS, PROF, PICO, COLORS, SKINS, HAIRS, HAIR_STYLES, NAMES, PROF_WOOD_TOOL, rnd, pick } from './data'
-import type { Colonist } from './types'
+import type { Colonist, ColonistState } from './types'
 import { G } from './state'
 
 let pts = 50
@@ -77,6 +77,14 @@ export function genPool(n: number): Colonist[] {
       visual: { skin: pick(SKINS), hair: pick(HAIRS), hairStyle: pick(HAIR_STYLES), body: COLORS[i % COLORS.length] },
       tool: { type: PROF_WOOD_TOOL[PROF[i % PROF.length]] || '—', dur: 50 },
       weapon: { type: 'Wood Knife', dur: 60 },
+      // --- новая система ---
+      state: 'IDLE' as ColonistState,
+      task: null,
+      carry: { type: null, amount: 0 },
+      wounded: false,
+      incapacitated: false,
+      breakdownTimer: 0,
+      mourningTimer: 0,
     } as Colonist
   })
 }

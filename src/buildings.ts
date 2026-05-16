@@ -85,7 +85,7 @@ export function finishPlace(bd: BuildingDef, ti: Tile, crop: string | null) {
 }
 
 // ── SPRITES ──
-function colonistStatusIcon(c: Colonist): string {
+function colonistStatusIcon(c: Colonist) {
   if (c.sick) return '✚'
   if (c.thirst > 65) return '💧'
   if (c.hunger > 65) return '🍖'

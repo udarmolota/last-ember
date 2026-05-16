@@ -4,7 +4,7 @@ import type { Colonist } from './types'
 import { refreshTileEl, centerOn } from './map'
 import { posSprite } from './buildings'
 import { addLog, renderLog, renderSidebar, renderResources, renderAssign, renderToolStock, showModal, updPauseBtn } from './ui'
-import { getTarget, doWork, updNight, updHappy, checkMeals, checkHerald, tickConstruction, tickPiles, renderAdvisor } from './colonists'
+import { getTarget, doWork, updNight, updHappy, checkMeals, checkHerald, tickConstruction, tickPiles, renderAdvisor, updateColonist } from './colonists'
 import { spawnEnemy, tickCombat, checkFirstRaid, triggerCombatMode } from './combat'
 
 let lastTick = 0
@@ -26,7 +26,7 @@ export function tick() {
     if (c.priorityTarget && !c.sleeping && !(c.carryAmt > 0 && c.priorityPile)) {
       c.targetCol = c.priorityTarget.col; c.targetRow = c.priorityTarget.row
     }
-    if (G.minute % 10 === 0 && !c.sleeping) {
+    if (G.minute % 10 === 0 && !c.sleeping && !c.task) {
       const t = getTarget(c)
       if (t) {
         const tgt = G.tiles[t.row * MAP_W + t.col]
@@ -52,7 +52,10 @@ export function tick() {
 
     posSprite(c)
   })
-  if (G.minute % 5 === 0) G.colonists.filter((c) => !c.dead).forEach(doWork)
+  if (G.minute % 5 === 0) {
+    G.colonists.filter((c) => !c.dead).forEach(doWork)       // старая система — пока оставляем
+    G.colonists.filter((c) => !c.dead).forEach(updateColonist) // новая система — постепенно берёт управление
+  }
   if (G.minute % 3 === 0) tickConstruction()
   if (G.minute % 10 === 0) tickPiles()
   document.getElementById('hday')!.textContent = String(G.day)
@@ -136,6 +139,8 @@ export function hourTick() {
     if (c.hunger < 30 && c.thirst < 30) md += 0.3
     if (c.role === topPref && !c.sleeping) md += 0.4
     if (hasShelter) md += 0.2
+    const hasBarracks = G.tiles.some((t) => t.bldg && t.bldg.id === 'barracks' && t.bldg.buildTime <= 0)
+    if (c.role === 'GUARD' && hasBarracks) md += 0.5
     c.mood = Math.max(0, Math.min(100, c.mood + md + (Math.random() < 0.2 ? 0.3 : -0.1)))
   })
   checkMeals(); checkHerald()
